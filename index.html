@@ -85,7 +85,7 @@
 
     <!-- Indicador de carga -->
     <div id="loader" class="hidden text-center py-2 text-sm text-sky-400 font-medium animate-pulse">
-      Analizando daños físicos, arrugas por humedad y año de edición con Gemini 2.5 Flash...
+      Analizando libro con Gemini 3.8 Flash...
     </div>
 
     <!-- Tarjeta de Resultados -->
@@ -292,32 +292,48 @@ Responde ÚNICAMENTE un objeto JSON válido con este formato:
         }
       };
 
-      // Modelo activo verificado en tu proyecto: gemini-2.5-flash
-      const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
+      // Modelos soportados y solicitados expresamente por la API
+      const modelos = [
+        "gemini-3.8-flash",
+        "gemini-3.7-flash",
+        "gemini-3.5-flash"
+      ];
 
-      try {
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
+      let exito = false;
+      let ultimoError = "";
 
-        if (!res.ok) {
-          const errData = await res.json();
-          throw new Error(errData.error?.message || `HTTP ${res.status}`);
+      for (const mod of modelos) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${mod}:generateContent?key=${encodeURIComponent(apiKey)}`;
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (!res.ok) {
+            const errData = await res.json();
+            throw new Error(errData.error?.message || `HTTP ${res.status}`);
+          }
+
+          const data = await res.json();
+          const jsonText = data.candidates[0].content.parts[0].text;
+          const result = JSON.parse(jsonText);
+
+          renderizarResultado(result);
+          exito = true;
+          break;
+        } catch (err) {
+          ultimoError = err.message;
         }
-
-        const data = await res.json();
-        const jsonText = data.candidates[0].content.parts[0].text;
-        const result = JSON.parse(jsonText);
-
-        renderizarResultado(result);
-      } catch (err) {
-        alert("Fallo en la evaluación: " + err.message);
-      } finally {
-        document.getElementById('loader').classList.add('hidden');
-        document.getElementById('btnEvaluar').disabled = false;
       }
+
+      if (!exito) {
+        alert("Fallo en la evaluación: " + ultimoError);
+      }
+
+      document.getElementById('loader').classList.add('hidden');
+      document.getElementById('btnEvaluar').disabled = false;
     }
 
     function renderizarResultado(res) {
