@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Evaluador de Expurgo de Libros</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-4 flex flex-col items-center">
+
+  <div class="w-full max-w-lg space-y-4">
+    <header class="border-b border-slate-700 pb-3">
+      <h1 class="text-xl font-bold text-sky-400">Expurgo Bibliotecario con IA</h1>
+      <p class="text-xs text-slate-400">Procesamiento multimodal directo en navegador ($0)</p>
+    </header>
+
+    <!-- Configuración inicial -->
+    <section class="bg-slate-800 p-3 rounded-lg border border-slate-700 space-y-2 text-sm">
+      <div>
+        <label class="block text-xs font-semibold text-slate-300">Gemini API Key (Almacenada localmente):</label>
+        <input id="apiKey" type="password" placeholder="AIzaSy..." class="w-full bg-slate-900 border border-slate-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-sky-500">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-300">Año límite de expurgo (obsolescencia):</label>
+        <input id="corteAnio" type="number" value="2018" class="w-full bg-slate-900 border border-slate-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-sky-500">
+      </div>
+    </section>
+
+    <!-- Captura de las 3 imágenes -->
+    <section class="grid grid-cols-3 gap-2">
+      <div class="flex flex-col items-center bg-slate-800 p-2 rounded border border-slate-700 text-center">
+        <span class="text-xs font-medium mb-1">1. Portada</span>
+        <label class="w-full h-24 border-2 border-dashed border-slate-600 rounded flex flex-col items-center justify-center cursor-pointer overflow-hidden relative">
+          <img id="prev-portada" class="hidden absolute inset-0 w-full h-full object-cover">
+          <span id="txt-portada" class="text-xs text-slate-400">Tomar foto</span>
+          <input type="file" accept="image/*" capture="environment" class="hidden" onchange="procesarFoto(event, 'portada')">
+        </label>
+      </div>
+
+      <div class="flex flex-col items-center bg-slate-800 p-2 rounded border border-slate-700 text-center">
+        <span class="text-xs font-medium mb-1">2. Contraportada</span>
+        <label class="w-full h-24 border-2 border-dashed border-slate-600 rounded flex flex-col items-center justify-center cursor-pointer overflow-hidden relative">
+          <img id="prev-contra" class="hidden absolute inset-0 w-full h-full object-cover">
+          <span id="txt-contra" class="text-xs text-slate-400">Tomar foto</span>
+          <input type="file" accept="image/*" capture="environment" class="hidden" onchange="procesarFoto(event, 'contra')">
+        </label>
+      </div>
+
+      <div class="flex flex-col items-center bg-slate-800 p-2 rounded border border-slate-700 text-center">
+        <span class="text-xs font-medium mb-1">3. Hoja Legal</span>
+        <label class="w-full h-24 border-2 border-dashed border-slate-600 rounded flex flex-col items-center justify-center cursor-pointer overflow-hidden relative">
+          <img id="prev-legal" class="hidden absolute inset-0 w-full h-full object-cover">
+          <span id="txt-legal" class="text-xs text-slate-400">Tomar foto</span>
+          <input type="file" accept="image/*" capture="environment" class="hidden" onchange="procesarFoto(event, 'legal')">
+        </label>
+      </div>
+    </section>
+
+    <!-- Botón de acción -->
+    <button id="btnEvaluar" onclick="evaluarLibro()" class="w-full py-3 bg-sky-600 hover:bg-sky-500 font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
+      <span>Evaluar Descarte</span>
+    </button>
+
+    <!-- Indicador de estado -->
+    <div id="loader" class="hidden text-center text-sm text-sky-400 animate-pulse">Analizando daño físico, OCR y metadatos...</div>
+
+    <!-- Resultados -->
+    <section id="cardResultado" class="hidden bg-slate-800 p-4 rounded-lg border border-slate-700 space-y-3">
+      <div id="badgeDecision" class="text-center font-black py-2 rounded text-base tracking-wide"></div>
+      
+      <div class="text-xs space-y-1 text-slate-300">
+        <p><strong class="text-slate-100">Título:</strong> <span id="resTitulo"></span></p>
+        <p><strong class="text-slate-100">Año detectado:</strong> <span id="resAnio"></span></p>
+        <p><strong class="text-slate-100">Daño físico / humedad:</strong> <span id="resDano"></span></p>
+        <p><strong class="text-slate-100">Motivo técnico:</strong> <span id="resMotivo"></span></p>
+      </div>
+
+      <button onclick="limpiar()" class="w-full mt-2 py-1.5 bg-slate-700 hover:bg-slate-600 text-xs rounded">Siguiente libro</button>
+    </section>
+  </div>
+
+  <script>
+    // Memoria volátil para Base64 comprimido
+    const fotos = { portada: null, contra: null, legal: null };
+
+    // Persistencia local de API Key y año límite
+    const apiInput = document.getElementById('apiKey');
+    const anioInput = document.getElementById('corteAnio');
+    apiInput.value = localStorage.getItem('GEMINI_KEY') || '';
+    anioInput.value = localStorage.getItem('CORTE_ANIO') || '2018';
+    apiInput.addEventListener('input', () => localStorage.setItem('GEMINI_KEY', apiInput.value.trim()));
+    anioInput.addEventListener('input', () => localStorage.setItem('CORTE_ANIO', anioInput.value.trim()));
+
+    // Comprime en el cliente usando HTML5 Canvas (evita sobrepasar límites de payload)
+    function procesarFoto(event, tipo) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxDim = 1024;
+          let w = img.width;
+          let h = img.height;
+
+          if (w > h && w > maxDim) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else if (h > maxDim) {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+
+          // Calidad JPEG a 0.7: mantiene texto legible para OCR reduciendo el peso a ~120KB
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          fotos[tipo] = dataUrl.split(',')[1]; // Solo Base64 crudo
+
+          // Actualizar previsualización
+          document.getElementById(`prev-${tipo}`).src = dataUrl;
+          document.getElementById(`prev-${tipo}`).classList.remove('hidden');
+          document.getElementById(`txt-${tipo}`).classList.add('hidden');
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function evaluarLibro() {
+      const apiKey = apiInput.value.trim();
+      const anioCorte = parseInt(anioInput.value, 10) || 2018;
+
+      if (!apiKey) return alert("Ingresa tu Gemini API Key de Google AI Studio.");
+      if (!fotos.portada || !fotos.contra || !fotos.legal) {
+        return alert("Debes tomar las 3 fotos antes de evaluar.");
+      }
+
+      document.getElementById('loader').classList.remove('hidden');
+      document.getElementById('btnEvaluar').disabled = true;
+
+      const prompt = `Eres un bibliotecario profesional evaluando descarte/expurgo físico de libros.
+Analiza las 3 imágenes adjuntas (Portada, Contraportada y Página legal de créditos/copyright).
+Año límite de corte: ${anioCorte}.
+Criterios obligatorios:
+1. Daño físico: Verifica si el ejemplar presenta deformación por agua, arrugas por secado, humedad, manchas de líquido, hongos, roturas graves o desprendimiento.
+2. Si el libro tiene daños por agua/humedad, DEBE descartarse sin importar la edición.
+3. Si el libro está en buen estado, verifica el año de edición/copyright: si es menor a ${anioCorte}, clasificar como descarte por antigüedad, a menos que el contenido justifique conservación.
+
+Responde ÚNICAMENTE en JSON con la siguiente estructura:
+{
+  "titulo": "string",
+  "anio_edicion": number,
+  "dano_humedad_o_fisico": true/false,
+  "detalle_dano": "string conciso",
+  "decision_descarte": true/false,
+  "motivo": "string conciso"
+}`;
+
+      const payload = {
+        contents: [{
+          parts: [
+            { text: prompt },
+            { inline_data: { mime_type: "image/jpeg", data: fotos.portada } },
+            { inline_data: { mime_type: "image/jpeg", data: fotos.contra } },
+            { inline_data: { mime_type: "image/jpeg", data: fotos.legal } }
+          ]
+        }],
+        generationConfig: {
+          response_mime_type: "application/json",
+          temperature: 0.1
+        }
+      };
+
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error?.message || "Error al consultar Gemini API");
+        }
+
+        const data = await res.json();
+        const jsonText = data.candidates[0].content.parts[0].text;
+        const result = JSON.parse(jsonText);
+
+        renderizarResultado(result);
+      } catch (err) {
+        alert("Fallo en la evaluación: " + err.message);
+      } finally {
+        document.getElementById('loader').classList.add('hidden');
+        document.getElementById('btnEvaluar').disabled = false;
+      }
+    }
+
+    function renderizarResultado(res) {
+      const badge = document.getElementById('badgeDecision');
+      if (res.decision_descarte) {
+        badge.className = "text-center font-black py-2 rounded text-base tracking-wide bg-rose-600 text-white";
+        badge.textContent = "DESCARTAR / EXPURGAR";
+      } else {
+        badge.className = "text-center font-black py-2 rounded text-base tracking-wide bg-emerald-600 text-white";
+        badge.textContent = "CONSERVAR EN COLECCIÓN";
+      }
+
+      document.getElementById('resTitulo').textContent = res.titulo || 'No identificado';
+      document.getElementById('resAnio').textContent = res.anio_edicion || 'Desconocido';
+      document.getElementById('resDano').textContent = res.dano_humedad_o_fisico ? `SÍ (${res.detalle_dano})` : 'Ninguno evidente';
+      document.getElementById('resMotivo').textContent = res.motivo || 'N/A';
+
+      document.getElementById('cardResultado').classList.remove('hidden');
+    }
+
+    function limpiar() {
+      fotos.portada = null;
+      fotos.contra = null;
+      fotos.legal = null;
+
+      ['portada', 'contra', 'legal'].forEach(tipo => {
+        document.getElementById(`prev-${tipo}`).src = '';
+        document.getElementById(`prev-${tipo}`).classList.add('hidden');
+        document.getElementById(`txt-${tipo}`).classList.remove('hidden');
+      });
+
+      document.getElementById('cardResultado').classList.add('hidden');
+    }
+  </script>
+</body>
+</html>
