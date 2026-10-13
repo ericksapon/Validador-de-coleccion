@@ -3,96 +3,213 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-  <title>Evaluador de Expurgo de Libros</title>
+  <title>Validador de Colección - Expurgo Bibliotecario</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen p-4 flex flex-col items-center">
+<body class="bg-slate-950 text-slate-100 min-h-screen p-4 flex flex-col items-center">
 
-  <div class="w-full max-w-lg space-y-4">
-    <header class="border-b border-slate-700 pb-3">
-      <h1 class="text-xl font-bold text-sky-400">Expurgo Bibliotecario con IA</h1>
-      <p class="text-xs text-slate-400">Procesamiento multimodal directo en navegador ($0)</p>
+  <div class="w-full max-w-xl space-y-4">
+    <!-- Encabezado con estado de la clave -->
+    <header class="flex items-center justify-between border-b border-slate-800 pb-3">
+      <div>
+        <h1 class="text-xl font-bold text-sky-400">Expurgo Bibliotecario</h1>
+        <p class="text-xs text-slate-400">Inspección multimodal de ejemplares</p>
+      </div>
+      <button onclick="abrirModalKey()" class="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 px-2.5 py-1.5 rounded flex items-center gap-1.5 text-slate-300">
+        <span id="keyStatusDot" class="w-2 h-2 rounded-full bg-rose-500"></span>
+        <span>Configurar API</span>
+      </button>
     </header>
 
-    <!-- Configuración inicial -->
-    <section class="bg-slate-800 p-3 rounded-lg border border-slate-700 space-y-2 text-sm">
-      <div>
-        <label class="block text-xs font-semibold text-slate-300">Gemini API Key (Almacenada localmente):</label>
-        <input id="apiKey" type="password" placeholder="AIzaSy..." class="w-full bg-slate-900 border border-slate-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-sky-500">
-      </div>
-      <div>
-        <label class="block text-xs font-semibold text-slate-300">Año límite de expurgo (obsolescencia):</label>
-        <input id="corteAnio" type="number" value="2018" class="w-full bg-slate-900 border border-slate-600 rounded p-1.5 text-xs text-white focus:outline-none focus:border-sky-500">
-      </div>
+    <!-- Parámetro de año de corte -->
+    <section class="bg-slate-900 p-3 rounded-lg border border-slate-800 flex items-center justify-between">
+      <label for="corteAnio" class="text-xs font-semibold text-slate-300">Año de corte (Obsolescencia):</label>
+      <input id="corteAnio" type="number" value="2018" class="w-24 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-right text-sky-400 font-mono focus:outline-none focus:border-sky-500">
     </section>
 
-    <!-- Captura de las 3 imágenes -->
-    <section class="grid grid-cols-3 gap-2">
-      <div class="flex flex-col items-center bg-slate-800 p-2 rounded border border-slate-700 text-center">
-        <span class="text-xs font-medium mb-1">1. Portada</span>
-        <label class="w-full h-24 border-2 border-dashed border-slate-600 rounded flex flex-col items-center justify-center cursor-pointer overflow-hidden relative">
+    <!-- Secciones de Captura de Fotos -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <!-- 1. Portada -->
+      <div class="bg-slate-900 p-3 rounded-lg border border-slate-800 flex flex-col items-center">
+        <span class="text-xs font-bold text-slate-300 mb-2">1. Portada</span>
+        <div class="w-full h-36 bg-slate-950 border border-slate-800 rounded relative overflow-hidden flex items-center justify-center mb-2">
           <img id="prev-portada" class="hidden absolute inset-0 w-full h-full object-cover">
-          <span id="txt-portada" class="text-xs text-slate-400">Tomar foto</span>
-          <input type="file" accept="image/*" capture="environment" class="hidden" onchange="procesarFoto(event, 'portada')">
-        </label>
+          <span id="txt-portada" class="text-xs text-slate-500 text-center px-2">Sin captura</span>
+        </div>
+        <div class="w-full flex gap-1">
+          <button onclick="iniciarCamara('portada')" class="flex-1 bg-sky-600 hover:bg-sky-500 text-[11px] font-semibold py-1.5 rounded">Cámara</button>
+          <label class="flex-1 bg-slate-800 hover:bg-slate-700 text-[11px] font-semibold py-1.5 rounded text-center cursor-pointer">
+            Archivo
+            <input type="file" accept="image/*" class="hidden" onchange="cargarDesdeArchivo(event, 'portada')">
+          </label>
+        </div>
       </div>
 
-      <div class="flex flex-col items-center bg-slate-800 p-2 rounded border border-slate-700 text-center">
-        <span class="text-xs font-medium mb-1">2. Contraportada</span>
-        <label class="w-full h-24 border-2 border-dashed border-slate-600 rounded flex flex-col items-center justify-center cursor-pointer overflow-hidden relative">
+      <!-- 2. Contraportada -->
+      <div class="bg-slate-900 p-3 rounded-lg border border-slate-800 flex flex-col items-center">
+        <span class="text-xs font-bold text-slate-300 mb-2">2. Contraportada</span>
+        <div class="w-full h-36 bg-slate-950 border border-slate-800 rounded relative overflow-hidden flex items-center justify-center mb-2">
           <img id="prev-contra" class="hidden absolute inset-0 w-full h-full object-cover">
-          <span id="txt-contra" class="text-xs text-slate-400">Tomar foto</span>
-          <input type="file" accept="image/*" capture="environment" class="hidden" onchange="procesarFoto(event, 'contra')">
-        </label>
+          <span id="txt-contra" class="text-xs text-slate-500 text-center px-2">Sin captura</span>
+        </div>
+        <div class="w-full flex gap-1">
+          <button onclick="iniciarCamara('contra')" class="flex-1 bg-sky-600 hover:bg-sky-500 text-[11px] font-semibold py-1.5 rounded">Cámara</button>
+          <label class="flex-1 bg-slate-800 hover:bg-slate-700 text-[11px] font-semibold py-1.5 rounded text-center cursor-pointer">
+            Archivo
+            <input type="file" accept="image/*" class="hidden" onchange="cargarDesdeArchivo(event, 'contra')">
+          </label>
+        </div>
       </div>
 
-      <div class="flex flex-col items-center bg-slate-800 p-2 rounded border border-slate-700 text-center">
-        <span class="text-xs font-medium mb-1">3. Hoja Legal</span>
-        <label class="w-full h-24 border-2 border-dashed border-slate-600 rounded flex flex-col items-center justify-center cursor-pointer overflow-hidden relative">
+      <!-- 3. Hoja Legal -->
+      <div class="bg-slate-900 p-3 rounded-lg border border-slate-800 flex flex-col items-center">
+        <span class="text-xs font-bold text-slate-300 mb-2">3. Hoja Legal / Año</span>
+        <div class="w-full h-36 bg-slate-950 border border-slate-800 rounded relative overflow-hidden flex items-center justify-center mb-2">
           <img id="prev-legal" class="hidden absolute inset-0 w-full h-full object-cover">
-          <span id="txt-legal" class="text-xs text-slate-400">Tomar foto</span>
-          <input type="file" accept="image/*" capture="environment" class="hidden" onchange="procesarFoto(event, 'legal')">
-        </label>
+          <span id="txt-legal" class="text-xs text-slate-500 text-center px-2">Sin captura</span>
+        </div>
+        <div class="w-full flex gap-1">
+          <button onclick="iniciarCamara('legal')" class="flex-1 bg-sky-600 hover:bg-sky-500 text-[11px] font-semibold py-1.5 rounded">Cámara</button>
+          <label class="flex-1 bg-slate-800 hover:bg-slate-700 text-[11px] font-semibold py-1.5 rounded text-center cursor-pointer">
+            Archivo
+            <input type="file" accept="image/*" class="hidden" onchange="cargarDesdeArchivo(event, 'legal')">
+          </label>
+        </div>
       </div>
     </section>
 
-    <!-- Botón de acción -->
-    <button id="btnEvaluar" onclick="evaluarLibro()" class="w-full py-3 bg-sky-600 hover:bg-sky-500 font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
-      <span>Evaluar Descarte</span>
+    <!-- Botón de Evaluación -->
+    <button id="btnEvaluar" onclick="evaluarLibro()" class="w-full py-3.5 bg-sky-600 hover:bg-sky-500 font-bold rounded-lg transition-colors text-sm shadow-lg shadow-sky-950">
+      Evaluar Descarte
     </button>
 
-    <!-- Indicador de estado -->
-    <div id="loader" class="hidden text-center text-sm text-sky-400 animate-pulse">Analizando daño físico, OCR y metadatos...</div>
+    <!-- Spinner / Loading -->
+    <div id="loader" class="hidden text-center py-2 text-sm text-sky-400 font-medium animate-pulse">
+      Analizando daños físicos, arrugas por humedad y año de edición...
+    </div>
 
-    <!-- Resultados -->
-    <section id="cardResultado" class="hidden bg-slate-800 p-4 rounded-lg border border-slate-700 space-y-3">
-      <div id="badgeDecision" class="text-center font-black py-2 rounded text-base tracking-wide"></div>
+    <!-- Tarjeta de Resultados -->
+    <section id="cardResultado" class="hidden bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3">
+      <div id="badgeDecision" class="text-center font-black py-2 rounded text-base tracking-wider"></div>
       
-      <div class="text-xs space-y-1 text-slate-300">
+      <div class="text-xs space-y-1.5 text-slate-300 bg-slate-950 p-3 rounded border border-slate-800">
         <p><strong class="text-slate-100">Título:</strong> <span id="resTitulo"></span></p>
-        <p><strong class="text-slate-100">Año detectado:</strong> <span id="resAnio"></span></p>
-        <p><strong class="text-slate-100">Daño físico / humedad:</strong> <span id="resDano"></span></p>
-        <p><strong class="text-slate-100">Motivo técnico:</strong> <span id="resMotivo"></span></p>
+        <p><strong class="text-slate-100">Año de Edición:</strong> <span id="resAnio"></span></p>
+        <p><strong class="text-slate-100">Daño Físico / Humedad:</strong> <span id="resDano"></span></p>
+        <p><strong class="text-slate-100">Dictamen Técnico:</strong> <span id="resMotivo"></span></p>
       </div>
 
-      <button onclick="limpiar()" class="w-full mt-2 py-1.5 bg-slate-700 hover:bg-slate-600 text-xs rounded">Siguiente libro</button>
+      <button onclick="limpiar()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded">
+        Evaluar Siguiente Libro
+      </button>
     </section>
   </div>
 
+  <!-- MODAL DE CÁMARA EN VIVO (PC / Tablet / iPad) -->
+  <div id="modalCamara" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+    <div class="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-4 space-y-3">
+      <div class="flex justify-between items-center">
+        <h3 id="modalCamaraTitulo" class="text-sm font-bold text-sky-400">Capturar Foto</h3>
+        <button onclick="cerrarCamara()" class="text-slate-400 hover:text-white text-lg">&times;</button>
+      </div>
+      <div class="relative w-full aspect-square bg-black rounded-lg overflow-hidden flex items-center justify-center">
+        <video id="videoFeed" autoplay playsinline class="w-full h-full object-cover"></video>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="capturarSnapshot()" class="flex-1 py-2.5 bg-sky-600 hover:bg-sky-500 font-bold rounded-lg text-sm">Tomar Foto</button>
+        <button onclick="cerrarCamara()" class="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE CONFIGURACIÓN DE API KEY (Se abre si no hay clave guardada) -->
+  <div id="modalApiKey" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+    <div class="bg-slate-900 border border-slate-800 rounded-xl max-w-sm w-full p-4 space-y-3">
+      <h3 class="text-sm font-bold text-sky-400">Configuración de Gemini API</h3>
+      <p class="text-xs text-slate-400">Ingresa la API Key de Google AI Studio. Se guardará localmente en este navegador y no se volverá a solicitar.</p>
+      <input id="inputApiKeyModal" type="password" placeholder="AIzaSy..." class="w-full bg-slate-950 border border-slate-700 rounded p-2 text-xs text-white focus:outline-none focus:border-sky-500">
+      <div class="flex gap-2">
+        <button onclick="guardarApiKey()" class="flex-1 py-2 bg-sky-600 hover:bg-sky-500 font-bold rounded text-xs">Guardar Clave</button>
+        <button onclick="cerrarModalKey()" class="py-2 px-3 bg-slate-800 hover:bg-slate-700 rounded text-xs">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // Memoria volátil para Base64 comprimido
     const fotos = { portada: null, contra: null, legal: null };
+    let streamActivo = null;
+    let slotActual = null;
 
-    // Persistencia local de API Key y año límite
-    const apiInput = document.getElementById('apiKey');
-    const anioInput = document.getElementById('corteAnio');
-    apiInput.value = localStorage.getItem('GEMINI_KEY') || '';
-    anioInput.value = localStorage.getItem('CORTE_ANIO') || '2018';
-    apiInput.addEventListener('input', () => localStorage.setItem('GEMINI_KEY', apiInput.value.trim()));
-    anioInput.addEventListener('input', () => localStorage.setItem('CORTE_ANIO', anioInput.value.trim()));
+    // Inicialización y persistencia de API Key
+    function verificarApiKey() {
+      const key = localStorage.getItem('GEMINI_API_KEY');
+      const dot = document.getElementById('keyStatusDot');
+      if (key) {
+        dot.className = "w-2 h-2 rounded-full bg-emerald-500";
+      } else {
+        dot.className = "w-2 h-2 rounded-full bg-rose-500";
+        abrirModalKey();
+      }
+    }
 
-    // Comprime en el cliente usando HTML5 Canvas (evita sobrepasar límites de payload)
-    function procesarFoto(event, tipo) {
+    function abrirModalKey() {
+      document.getElementById('inputApiKeyModal').value = localStorage.getItem('GEMINI_API_KEY') || '';
+      document.getElementById('modalApiKey').classList.remove('hidden');
+    }
+
+    function cerrarModalKey() {
+      document.getElementById('modalApiKey').classList.add('hidden');
+    }
+
+    function guardarApiKey() {
+      const val = document.getElementById('inputApiKeyModal').value.trim();
+      if (!val) return alert("Por favor ingresa una clave válida.");
+      localStorage.setItem('GEMINI_API_KEY', val);
+      cerrarModalKey();
+      verificarApiKey();
+    }
+
+    // Manejo de Cámara Web / Cámara de iPad
+    async function iniciarCamara(tipo) {
+      slotActual = tipo;
+      document.getElementById('modalCamaraTitulo').textContent = `Capturar ${tipo.toUpperCase()}`;
+      document.getElementById('modalCamara').classList.remove('hidden');
+
+      try {
+        // En móviles e iPads solicita cámara trasera ('environment') si existe; en PC usa la webcam
+        streamActivo = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 } },
+          audio: false
+        });
+        document.getElementById('videoFeed').srcObject = streamActivo;
+      } catch (err) {
+        alert("No se pudo acceder a la cámara. Revisa los permisos del navegador.");
+        cerrarCamara();
+      }
+    }
+
+    function capturarSnapshot() {
+      const video = document.getElementById('videoFeed');
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      guardarImagenProcesada(canvas, slotActual);
+      cerrarCamara();
+    }
+
+    function cerrarCamara() {
+      if (streamActivo) {
+        streamActivo.getTracks().forEach(track => track.stop());
+        streamActivo = null;
+      }
+      document.getElementById('modalCamara').classList.add('hidden');
+    }
+
+    // Carga de archivo manual
+    function cargarDesdeArchivo(event, tipo) {
       const file = event.target.files[0];
       if (!file) return;
 
@@ -104,7 +221,6 @@
           const maxDim = 1024;
           let w = img.width;
           let h = img.height;
-
           if (w > h && w > maxDim) {
             h = Math.round((h * maxDim) / w);
             w = maxDim;
@@ -112,33 +228,37 @@
             w = Math.round((w * maxDim) / h);
             h = maxDim;
           }
-
           canvas.width = w;
           canvas.height = h;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, w, h);
-
-          // Calidad JPEG a 0.7: mantiene texto legible para OCR reduciendo el peso a ~120KB
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-          fotos[tipo] = dataUrl.split(',')[1]; // Solo Base64 crudo
-
-          // Actualizar previsualización
-          document.getElementById(`prev-${tipo}`).src = dataUrl;
-          document.getElementById(`prev-${tipo}`).classList.remove('hidden');
-          document.getElementById(`txt-${tipo}`).classList.add('hidden');
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          guardarImagenProcesada(canvas, tipo);
         };
         img.src = e.target.result;
       };
       reader.readAsDataURL(file);
     }
 
-    async function evaluarLibro() {
-      const apiKey = apiInput.value.trim();
-      const anioCorte = parseInt(anioInput.value, 10) || 2018;
+    function guardarImagenProcesada(canvas, tipo) {
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+      fotos[tipo] = dataUrl.split(',')[1];
 
-      if (!apiKey) return alert("Ingresa tu Gemini API Key de Google AI Studio.");
+      const prev = document.getElementById(`prev-${tipo}`);
+      prev.src = dataUrl;
+      prev.classList.remove('hidden');
+      document.getElementById(`txt-${tipo}`).classList.add('hidden');
+    }
+
+    // Llamada con API Key
+    async function evaluarLibro() {
+      const apiKey = localStorage.getItem('GEMINI_API_KEY');
+      const anioCorte = parseInt(document.getElementById('corteAnio').value, 10) || 2018;
+
+      if (!apiKey) {
+        abrirModalKey();
+        return;
+      }
       if (!fotos.portada || !fotos.contra || !fotos.legal) {
-        return alert("Debes tomar las 3 fotos antes de evaluar.");
+        return alert("Debes capturar las 3 fotos antes de evaluar.");
       }
 
       document.getElementById('loader').classList.remove('hidden');
@@ -146,13 +266,13 @@
 
       const prompt = `Eres un bibliotecario profesional evaluando descarte/expurgo físico de libros.
 Analiza las 3 imágenes adjuntas (Portada, Contraportada y Página legal de créditos/copyright).
-Año límite de corte: ${anioCorte}.
+Año límite de corte de la colección: ${anioCorte}.
 Criterios obligatorios:
-1. Daño físico: Verifica si el ejemplar presenta deformación por agua, arrugas por secado, humedad, manchas de líquido, hongos, roturas graves o desprendimiento.
-2. Si el libro tiene daños por agua/humedad, DEBE descartarse sin importar la edición.
-3. Si el libro está en buen estado, verifica el año de edición/copyright: si es menor a ${anioCorte}, clasificar como descarte por antigüedad, a menos que el contenido justifique conservación.
+1. Daño físico: Verifica minuciosamente deformaciones por humedad/agua, marcas de secado, ondulaciones del papel, hongos o lomos rotos.
+2. Si el ejemplar tiene daño por agua/humedad, DEBE descartarse sin importar cuán reciente sea la edición.
+3. Si el ejemplar está en buen estado, verifica el año de edición o copyright: si es menor a ${anioCorte}, descartar por antigüedad u obsolescencia técnica.
 
-Responde ÚNICAMENTE en JSON con la siguiente estructura:
+Responde ÚNICAMENTE un objeto JSON válido con este formato:
 {
   "titulo": "string",
   "anio_edicion": number,
@@ -177,39 +297,58 @@ Responde ÚNICAMENTE en JSON con la siguiente estructura:
         }
       };
 
-      try {
-     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
+      // Intentar primero con gemini-1.5-flash y fallback a gemini-1.5-flash-latest si fuera necesario
+      const endpoints = [
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent"
+      ];
 
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error?.message || "Error al consultar Gemini API");
+      let exito = false;
+      let ultimoError = "";
+
+      for (const ep of endpoints) {
+        try {
+          const res = await fetch(ep, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-goog-api-key': apiKey
+            },
+            body: JSON.stringify(payload)
+          });
+
+          if (!res.ok) {
+            const errData = await res.json();
+            throw new Error(errData.error?.message || `HTTP ${res.status}`);
+          }
+
+          const data = await res.json();
+          const jsonText = data.candidates[0].content.parts[0].text;
+          const result = JSON.parse(jsonText);
+
+          renderizarResultado(result);
+          exito = true;
+          break;
+        } catch (err) {
+          ultimoError = err.message;
         }
-
-        const data = await res.json();
-        const jsonText = data.candidates[0].content.parts[0].text;
-        const result = JSON.parse(jsonText);
-
-        renderizarResultado(result);
-      } catch (err) {
-        alert("Fallo en la evaluación: " + err.message);
-      } finally {
-        document.getElementById('loader').classList.add('hidden');
-        document.getElementById('btnEvaluar').disabled = false;
       }
+
+      if (!exito) {
+        alert("Fallo en la evaluación: " + ultimoError);
+      }
+
+      document.getElementById('loader').classList.add('hidden');
+      document.getElementById('btnEvaluar').disabled = false;
     }
 
     function renderizarResultado(res) {
       const badge = document.getElementById('badgeDecision');
       if (res.decision_descarte) {
-        badge.className = "text-center font-black py-2 rounded text-base tracking-wide bg-rose-600 text-white";
+        badge.className = "text-center font-black py-2 rounded text-base tracking-wider bg-rose-600 text-white shadow-md shadow-rose-950";
         badge.textContent = "DESCARTAR / EXPURGAR";
       } else {
-        badge.className = "text-center font-black py-2 rounded text-base tracking-wide bg-emerald-600 text-white";
+        badge.className = "text-center font-black py-2 rounded text-base tracking-wider bg-emerald-600 text-white shadow-md shadow-emerald-950";
         badge.textContent = "CONSERVAR EN COLECCIÓN";
       }
 
@@ -227,13 +366,17 @@ Responde ÚNICAMENTE en JSON con la siguiente estructura:
       fotos.legal = null;
 
       ['portada', 'contra', 'legal'].forEach(tipo => {
-        document.getElementById(`prev-${tipo}`).src = '';
-        document.getElementById(`prev-${tipo}`).classList.add('hidden');
+        const prev = document.getElementById(`prev-${tipo}`);
+        prev.src = '';
+        prev.classList.add('hidden');
         document.getElementById(`txt-${tipo}`).classList.remove('hidden');
       });
 
       document.getElementById('cardResultado').classList.add('hidden');
     }
+
+    // Ejecutar al cargar la página
+    verificarApiKey();
   </script>
 </body>
 </html>
