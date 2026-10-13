@@ -85,7 +85,7 @@
 
     <!-- Indicador de carga -->
     <div id="loader" class="hidden text-center py-2 text-sm text-sky-400 font-medium animate-pulse">
-      Analizando libro con Gemini 3.8 Flash...
+      <span id="loaderMsg">Analizando daños físicos y metadatos con Gemini...</span>
     </div>
 
     <!-- Tarjeta de Resultados -->
@@ -244,6 +244,8 @@
       document.getElementById(`txt-${tipo}`).classList.add('hidden');
     }
 
+    const esperar = (ms) => new Promise(res => setTimeout(res, ms));
+
     async function evaluarLibro() {
       const apiKey = (localStorage.getItem('GEMINI_API_KEY') || '').trim();
       const anioCorte = parseInt(document.getElementById('corteAnio').value, 10) || 2018;
@@ -256,7 +258,9 @@
         return alert("Debes capturar las 3 fotos antes de evaluar.");
       }
 
-      document.getElementById('loader').classList.remove('hidden');
+      const loader = document.getElementById('loader');
+      const loaderMsg = document.getElementById('loaderMsg');
+      loader.classList.remove('hidden');
       document.getElementById('btnEvaluar').disabled = true;
 
       const prompt = `Eres un bibliotecario profesional evaluando descarte/expurgo físico de libros.
@@ -292,8 +296,10 @@ Responde ÚNICAMENTE un objeto JSON válido con este formato:
         }
       };
 
-      // Modelos soportados y solicitados expresamente por la API
+      // Modelos balanceados con menor tasa de congestión primero
       const modelos = [
+        "gemini-2.5-flash-lite",
+        "gemini-3.5-flash-lite",
         "gemini-3.8-flash",
         "gemini-3.7-flash",
         "gemini-3.5-flash"
@@ -303,36 +309,50 @@ Responde ÚNICAMENTE un objeto JSON válido con este formato:
       let ultimoError = "";
 
       for (const mod of modelos) {
-        try {
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/${mod}:generateContent?key=${encodeURIComponent(apiKey)}`;
-          const res = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
+        loaderMsg.textContent = `Consultando con ${mod}...`;
 
-          if (!res.ok) {
-            const errData = await res.json();
-            throw new Error(errData.error?.message || `HTTP ${res.status}`);
+        // Intento con backoff breve ante error 503
+        for (let intento = 1; intento <= 2; intento++) {
+          try {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${mod}:generateContent?key=${encodeURIComponent(apiKey)}`;
+            const res = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+
+            if (res.status === 503) {
+              ultimoError = `Servidores en alta demanda (503) en ${mod}.`;
+              await esperar(1500 * intento);
+              continue; // Reintenta una vez o salta al siguiente modelo
+            }
+
+            if (!res.ok) {
+              const errData = await res.json();
+              throw new Error(errData.error?.message || `HTTP ${res.status}`);
+            }
+
+            const data = await res.json();
+            const jsonText = data.candidates[0].content.parts[0].text;
+            const result = JSON.parse(jsonText);
+
+            renderizarResultado(result);
+            exito = true;
+            break;
+          } catch (err) {
+            ultimoError = err.message;
+            break;
           }
-
-          const data = await res.json();
-          const jsonText = data.candidates[0].content.parts[0].text;
-          const result = JSON.parse(jsonText);
-
-          renderizarResultado(result);
-          exito = true;
-          break;
-        } catch (err) {
-          ultimoError = err.message;
         }
+
+        if (exito) break;
       }
 
       if (!exito) {
-        alert("Fallo en la evaluación: " + ultimoError);
+        alert("Fallo en la evaluación: " + ultimoError + "\n\nLos servidores de Google se encuentran en un pico temporal de tráfico. Intenta de nuevo en 30 segundos.");
       }
 
-      document.getElementById('loader').classList.add('hidden');
+      loader.classList.add('hidden');
       document.getElementById('btnEvaluar').disabled = false;
     }
 
