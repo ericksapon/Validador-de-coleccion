@@ -83,9 +83,9 @@
       Evaluar Descarte
     </button>
 
-    <!-- Spinner / Loading -->
+    <!-- Indicador de carga -->
     <div id="loader" class="hidden text-center py-2 text-sm text-sky-400 font-medium animate-pulse">
-      Analizando daños físicos, arrugas por humedad y año de edición...
+      Analizando daños físicos, arrugas por humedad y año de edición con Gemini...
     </div>
 
     <!-- Tarjeta de Resultados -->
@@ -105,7 +105,7 @@
     </section>
   </div>
 
-  <!-- MODAL DE CÁMARA EN VIVO (PC / Tablet / iPad) -->
+  <!-- MODAL DE CÁMARA EN VIVO -->
   <div id="modalCamara" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
     <div class="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-4 space-y-3">
       <div class="flex justify-between items-center">
@@ -122,12 +122,12 @@
     </div>
   </div>
 
-  <!-- MODAL DE CONFIGURACIÓN DE API KEY (Se abre si no hay clave guardada) -->
+  <!-- MODAL DE CONFIGURACIÓN DE API KEY -->
   <div id="modalApiKey" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
     <div class="bg-slate-900 border border-slate-800 rounded-xl max-w-sm w-full p-4 space-y-3">
       <h3 class="text-sm font-bold text-sky-400">Configuración de Gemini API</h3>
-      <p class="text-xs text-slate-400">Ingresa la API Key de Google AI Studio. Se guardará localmente en este navegador y no se volverá a solicitar.</p>
-      <input id="inputApiKeyModal" type="password" placeholder="AIzaSy..." class="w-full bg-slate-950 border border-slate-700 rounded p-2 text-xs text-white focus:outline-none focus:border-sky-500">
+      <p class="text-xs text-slate-400">Pega la API Key. Se guardará localmente en este navegador y no se volverá a solicitar.</p>
+      <input id="inputApiKeyModal" type="password" placeholder="AQ... o AIzaSy..." class="w-full bg-slate-950 border border-slate-700 rounded p-2 text-xs text-white focus:outline-none focus:border-sky-500">
       <div class="flex gap-2">
         <button onclick="guardarApiKey()" class="flex-1 py-2 bg-sky-600 hover:bg-sky-500 font-bold rounded text-xs">Guardar Clave</button>
         <button onclick="cerrarModalKey()" class="py-2 px-3 bg-slate-800 hover:bg-slate-700 rounded text-xs">Cerrar</button>
@@ -140,11 +140,10 @@
     let streamActivo = null;
     let slotActual = null;
 
-    // Inicialización y persistencia de API Key
     function verificarApiKey() {
-      const key = localStorage.getItem('GEMINI_API_KEY');
+      const key = (localStorage.getItem('GEMINI_API_KEY') || '').trim();
       const dot = document.getElementById('keyStatusDot');
-      if (key) {
+      if (key.length > 10) {
         dot.className = "w-2 h-2 rounded-full bg-emerald-500";
       } else {
         dot.className = "w-2 h-2 rounded-full bg-rose-500";
@@ -169,14 +168,12 @@
       verificarApiKey();
     }
 
-    // Manejo de Cámara Web / Cámara de iPad
     async function iniciarCamara(tipo) {
       slotActual = tipo;
       document.getElementById('modalCamaraTitulo').textContent = `Capturar ${tipo.toUpperCase()}`;
       document.getElementById('modalCamara').classList.remove('hidden');
 
       try {
-        // En móviles e iPads solicita cámara trasera ('environment') si existe; en PC usa la webcam
         streamActivo = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 } },
           audio: false
@@ -208,7 +205,6 @@
       document.getElementById('modalCamara').classList.add('hidden');
     }
 
-    // Carga de archivo manual
     function cargarDesdeArchivo(event, tipo) {
       const file = event.target.files[0];
       if (!file) return;
@@ -248,9 +244,8 @@
       document.getElementById(`txt-${tipo}`).classList.add('hidden');
     }
 
-    // Llamada con API Key
     async function evaluarLibro() {
-      const apiKey = localStorage.getItem('GEMINI_API_KEY');
+      const apiKey = (localStorage.getItem('GEMINI_API_KEY') || '').trim();
       const anioCorte = parseInt(document.getElementById('corteAnio').value, 10) || 2018;
 
       if (!apiKey) {
@@ -297,23 +292,16 @@ Responde ÚNICAMENTE un objeto JSON válido con este formato:
         }
       };
 
-      // Intentar primero con gemini-1.5-flash y fallback a gemini-1.5-flash-latest si fuera necesario
-      const endpoints = [
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent"
-      ];
-
+      const modelos = ["gemini-1.5-flash", "gemini-1.5-flash-8b"];
       let exito = false;
       let ultimoError = "";
 
-      for (const ep of endpoints) {
+      for (const mod of modelos) {
         try {
-          const res = await fetch(ep, {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${mod}:generateContent?key=${encodeURIComponent(apiKey)}`;
+          const res = await fetch(url, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-goog-api-key': apiKey
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
           });
 
@@ -375,9 +363,7 @@ Responde ÚNICAMENTE un objeto JSON válido con este formato:
       document.getElementById('cardResultado').classList.add('hidden');
     }
 
-    // Ejecutar al cargar la página
     verificarApiKey();
   </script>
 </body>
 </html>
-
