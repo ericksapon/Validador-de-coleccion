@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>Validador de Colección - Expurgo Bibliotecario</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Paleta extendida del Brandkit Institucional -->
+  <!-- Paleta extendida del Brandkit Institucional (Modo Claro) -->
   <script>
     tailwind.config = {
       theme: {
@@ -15,11 +15,11 @@
               DEFAULT: '#006837',      // Verde Primario
               dark: '#004d28',         // Verde Hover / Énfasis
               light: '#008746',        // Verde Claro
-              gold: '#FFC72C',         // Acento Dorado / Amarillo
-              bg: '#0A120E',           // Fondo general noche bosque
-              card: '#13211A',         // Fondo de tarjetas
-              surface: '#0E1A14',      // Superficie secundaria
-              border: '#1E362A'        // Bordes suaves
+              gold: '#D97706',         // Dorado / Ámbar para contraste en fondo claro
+              bg: '#F8FAFC',           // Fondo general claro (Slate 50)
+              card: '#FFFFFF',         // Tarjetas blancas
+              surface: '#F1F5F9',      // Contenedores secundarios (Slate 100)
+              border: '#E2E8F0'        // Bordes suaves (Slate 200)
             }
           }
         }
@@ -29,19 +29,19 @@
   <!-- SheetJS para generación de reportes Excel (.xlsx) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body class="bg-uvg-bg text-slate-100 min-h-screen p-4 flex flex-col items-center">
+<body class="bg-uvg-bg text-slate-800 min-h-screen p-4 flex flex-col items-center">
 
   <div class="w-full max-w-xl space-y-4">
     <!-- Encabezado con estado de la clave -->
     <header class="flex items-center justify-between border-b border-uvg-border pb-3">
       <div>
         <div class="flex items-center gap-2">
-          <div class="w-3 h-3 rounded-sm bg-uvg-gold"></div>
-          <h1 class="text-xl font-bold text-white tracking-wide">Expurgo Bibliotecario</h1>
+          <div class="w-3.5 h-3.5 rounded-sm bg-[#FFC72C] shadow-sm"></div>
+          <h1 class="text-xl font-bold text-slate-900 tracking-wide">Expurgo Bibliotecario</h1>
         </div>
-        <p class="text-xs text-emerald-300/70 ml-5">Inspección multimodal de ejemplares</p>
+        <p class="text-xs text-uvg font-medium ml-5">Inspección multimodal de ejemplares</p>
       </div>
-      <button onclick="abrirModalKey()" class="text-xs bg-uvg-surface hover:bg-uvg-card border border-uvg-border px-2.5 py-1.5 rounded-md flex items-center gap-1.5 text-slate-200 transition-colors">
+      <button onclick="abrirModalKey()" class="text-xs bg-white hover:bg-slate-50 border border-uvg-border px-2.5 py-1.5 rounded-md flex items-center gap-1.5 text-slate-700 shadow-sm transition-colors">
         <span id="keyStatusDot" class="w-2 h-2 rounded-full bg-rose-500"></span>
         <span>Configurar API</span>
       </button>
@@ -50,24 +50,24 @@
     <!-- Parámetro de año de corte y resumen de sesión -->
     <section class="bg-uvg-card p-3 rounded-lg border border-uvg-border flex items-center justify-between shadow-sm">
       <div>
-        <label for="corteAnio" class="text-xs font-semibold text-slate-200 block">Año de corte (Obsolescencia):</label>
-        <span class="text-[11px] text-slate-400">Evaluados en sesión: <strong id="contadorLibros" class="text-uvg-gold font-bold">0</strong></span>
+        <label for="corteAnio" class="text-xs font-semibold text-slate-700 block">Año de corte (Obsolescencia):</label>
+        <span class="text-[11px] text-slate-500">Evaluados en sesión: <strong id="contadorLibros" class="text-uvg font-bold">0</strong></span>
       </div>
-      <input id="corteAnio" type="number" value="2018" class="w-24 bg-uvg-surface border border-uvg-border rounded px-2 py-1 text-xs text-right text-uvg-gold font-mono focus:outline-none focus:border-uvg">
+      <input id="corteAnio" type="number" value="2018" class="w-24 bg-uvg-surface border border-uvg-border rounded px-2 py-1 text-xs text-right text-uvg-dark font-mono font-bold focus:outline-none focus:border-uvg">
     </section>
 
     <!-- Secciones de Captura de Fotos -->
     <section class="grid grid-cols-1 md:grid-cols-3 gap-3">
       <!-- 1. Portada -->
-      <div class="bg-uvg-card p-3 rounded-lg border border-uvg-border flex flex-col items-center">
-        <span class="text-xs font-bold text-slate-200 mb-2">1. Portada</span>
+      <div class="bg-uvg-card p-3 rounded-lg border border-uvg-border flex flex-col items-center shadow-sm">
+        <span class="text-xs font-bold text-slate-700 mb-2">1. Portada</span>
         <div class="w-full h-36 bg-uvg-surface border border-uvg-border rounded relative overflow-hidden flex items-center justify-center mb-2">
           <img id="prev-portada" class="hidden absolute inset-0 w-full h-full object-cover">
-          <span id="txt-portada" class="text-xs text-slate-500 text-center px-2">Sin captura</span>
+          <span id="txt-portada" class="text-xs text-slate-400 text-center px-2">Sin captura</span>
         </div>
         <div class="w-full flex gap-1">
-          <button onclick="iniciarCamara('portada')" class="flex-1 bg-uvg hover:bg-uvg-dark text-[11px] font-semibold py-1.5 rounded transition-colors text-white">Cámara</button>
-          <label class="flex-1 bg-uvg-surface hover:bg-uvg-border text-[11px] font-semibold py-1.5 rounded text-center cursor-pointer transition-colors text-slate-200">
+          <button onclick="iniciarCamara('portada')" class="flex-1 bg-uvg hover:bg-uvg-dark text-[11px] font-semibold py-1.5 rounded transition-colors text-white shadow-sm">Cámara</button>
+          <label class="flex-1 bg-white hover:bg-slate-50 border border-uvg-border text-[11px] font-semibold py-1.5 rounded text-center cursor-pointer transition-colors text-slate-700 shadow-sm">
             Archivo
             <input type="file" accept="image/*" class="hidden" onchange="cargarDesdeArchivo(event, 'portada')">
           </label>
@@ -75,15 +75,15 @@
       </div>
 
       <!-- 2. Contraportada -->
-      <div class="bg-uvg-card p-3 rounded-lg border border-uvg-border flex flex-col items-center">
-        <span class="text-xs font-bold text-slate-200 mb-2">2. Contraportada</span>
+      <div class="bg-uvg-card p-3 rounded-lg border border-uvg-border flex flex-col items-center shadow-sm">
+        <span class="text-xs font-bold text-slate-700 mb-2">2. Contraportada</span>
         <div class="w-full h-36 bg-uvg-surface border border-uvg-border rounded relative overflow-hidden flex items-center justify-center mb-2">
           <img id="prev-contra" class="hidden absolute inset-0 w-full h-full object-cover">
-          <span id="txt-contra" class="text-xs text-slate-500 text-center px-2">Sin captura</span>
+          <span id="txt-contra" class="text-xs text-slate-400 text-center px-2">Sin captura</span>
         </div>
         <div class="w-full flex gap-1">
-          <button onclick="iniciarCamara('contra')" class="flex-1 bg-uvg hover:bg-uvg-dark text-[11px] font-semibold py-1.5 rounded transition-colors text-white">Cámara</button>
-          <label class="flex-1 bg-uvg-surface hover:bg-uvg-border text-[11px] font-semibold py-1.5 rounded text-center cursor-pointer transition-colors text-slate-200">
+          <button onclick="iniciarCamara('contra')" class="flex-1 bg-uvg hover:bg-uvg-dark text-[11px] font-semibold py-1.5 rounded transition-colors text-white shadow-sm">Cámara</button>
+          <label class="flex-1 bg-white hover:bg-slate-50 border border-uvg-border text-[11px] font-semibold py-1.5 rounded text-center cursor-pointer transition-colors text-slate-700 shadow-sm">
             Archivo
             <input type="file" accept="image/*" class="hidden" onchange="cargarDesdeArchivo(event, 'contra')">
           </label>
@@ -91,15 +91,15 @@
       </div>
 
       <!-- 3. Hoja Legal -->
-      <div class="bg-uvg-card p-3 rounded-lg border border-uvg-border flex flex-col items-center">
-        <span class="text-xs font-bold text-slate-200 mb-2">3. Hoja Legal / Año</span>
+      <div class="bg-uvg-card p-3 rounded-lg border border-uvg-border flex flex-col items-center shadow-sm">
+        <span class="text-xs font-bold text-slate-700 mb-2">3. Hoja Legal / Año</span>
         <div class="w-full h-36 bg-uvg-surface border border-uvg-border rounded relative overflow-hidden flex items-center justify-center mb-2">
           <img id="prev-legal" class="hidden absolute inset-0 w-full h-full object-cover">
-          <span id="txt-legal" class="text-xs text-slate-500 text-center px-2">Sin captura</span>
+          <span id="txt-legal" class="text-xs text-slate-400 text-center px-2">Sin captura</span>
         </div>
         <div class="w-full flex gap-1">
-          <button onclick="iniciarCamara('legal')" class="flex-1 bg-uvg hover:bg-uvg-dark text-[11px] font-semibold py-1.5 rounded transition-colors text-white">Cámara</button>
-          <label class="flex-1 bg-uvg-surface hover:bg-uvg-border text-[11px] font-semibold py-1.5 rounded text-center cursor-pointer transition-colors text-slate-200">
+          <button onclick="iniciarCamara('legal')" class="flex-1 bg-uvg hover:bg-uvg-dark text-[11px] font-semibold py-1.5 rounded transition-colors text-white shadow-sm">Cámara</button>
+          <label class="flex-1 bg-white hover:bg-slate-50 border border-uvg-border text-[11px] font-semibold py-1.5 rounded text-center cursor-pointer transition-colors text-slate-700 shadow-sm">
             Archivo
             <input type="file" accept="image/*" class="hidden" onchange="cargarDesdeArchivo(event, 'legal')">
           </label>
@@ -108,12 +108,12 @@
     </section>
 
     <!-- Botón Principal de Evaluación -->
-    <button id="btnEvaluar" onclick="evaluarLibro()" class="w-full py-3.5 bg-uvg hover:bg-uvg-dark text-white font-bold rounded-lg transition-all text-sm shadow-md shadow-emerald-950/40 active:scale-[0.99]">
+    <button id="btnEvaluar" onclick="evaluarLibro()" class="w-full py-3.5 bg-uvg hover:bg-uvg-dark text-white font-bold rounded-lg transition-all text-sm shadow-md active:scale-[0.99]">
       Evaluar Descarte
     </button>
 
     <!-- Indicador de carga -->
-    <div id="loader" class="hidden text-center py-2 text-sm text-uvg-gold font-medium animate-pulse">
+    <div id="loader" class="hidden text-center py-2 text-sm text-uvg-dark font-semibold animate-pulse">
       <span id="loaderMsg">Analizando daños físicos y metadatos con Gemini...</span>
     </div>
 
@@ -121,36 +121,36 @@
     <section id="cardResultado" class="hidden bg-uvg-card p-4 rounded-lg border border-uvg-border space-y-3 shadow-md">
       <div id="badgeDecision" class="text-center font-black py-2.5 rounded text-base tracking-wider"></div>
       
-      <div class="text-xs space-y-1.5 text-slate-300 bg-uvg-surface p-3 rounded border border-uvg-border">
-        <p><strong class="text-white">Título:</strong> <span id="resTitulo"></span></p>
-        <p><strong class="text-white">Año de Edición:</strong> <span id="resAnio"></span></p>
-        <p><strong class="text-white">Daño Físico / Humedad:</strong> <span id="resDano"></span></p>
-        <p><strong class="text-white">Dictamen Técnico:</strong> <span id="resMotivo"></span></p>
+      <div class="text-xs space-y-1.5 text-slate-700 bg-uvg-surface p-3 rounded border border-uvg-border">
+        <p><strong class="text-slate-900">Título:</strong> <span id="resTitulo"></span></p>
+        <p><strong class="text-slate-900">Año de Edición:</strong> <span id="resAnio"></span></p>
+        <p><strong class="text-slate-900">Daño Físico / Humedad:</strong> <span id="resDano"></span></p>
+        <p><strong class="text-slate-900">Dictamen Técnico:</strong> <span id="resMotivo"></span></p>
       </div>
 
-      <button onclick="limpiar()" class="w-full py-2 bg-uvg hover:bg-uvg-dark text-white text-xs font-semibold rounded transition-colors">
+      <button onclick="limpiar()" class="w-full py-2 bg-uvg hover:bg-uvg-dark text-white text-xs font-semibold rounded transition-colors shadow-sm">
         Evaluar Siguiente Libro
       </button>
     </section>
 
     <!-- Historial y Exportación -->
-    <section class="bg-uvg-card p-4 rounded-lg border border-uvg-border space-y-3">
+    <section class="bg-uvg-card p-4 rounded-lg border border-uvg-border space-y-3 shadow-sm">
       <div class="flex items-center justify-between">
-        <h2 class="text-xs font-bold text-slate-200">Registro de Libros Evaluados</h2>
+        <h2 class="text-xs font-bold text-slate-800">Registro de Libros Evaluados</h2>
         <div class="flex gap-2">
-          <button onclick="exportarExcel()" class="bg-uvg hover:bg-uvg-dark text-white text-[11px] font-bold px-3 py-1.5 rounded flex items-center gap-1 transition-colors border border-emerald-600/40">
+          <button onclick="exportarExcel()" class="bg-uvg hover:bg-uvg-dark text-white text-[11px] font-bold px-3 py-1.5 rounded flex items-center gap-1 transition-colors shadow-sm">
             📥 Descargar Excel (.xlsx)
           </button>
-          <button onclick="borrarHistorial()" class="bg-uvg-surface hover:bg-rose-900/60 text-slate-400 hover:text-rose-200 text-[11px] px-2.5 py-1.5 rounded border border-uvg-border transition-colors">
+          <button onclick="borrarHistorial()" class="bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-600 text-[11px] px-2.5 py-1.5 rounded border border-uvg-border transition-colors">
             Limpiar Todo
           </button>
         </div>
       </div>
 
       <!-- Tabla en vivo -->
-      <div class="max-h-56 overflow-y-auto overflow-x-auto rounded border border-uvg-border bg-uvg-surface">
-        <table class="w-full text-[11px] text-left text-slate-300">
-          <thead class="bg-uvg-card text-slate-400 uppercase text-[10px] sticky top-0 border-b border-uvg-border">
+      <div class="max-h-56 overflow-y-auto overflow-x-auto rounded border border-uvg-border bg-white">
+        <table class="w-full text-[11px] text-left text-slate-700">
+          <thead class="bg-uvg-surface text-slate-600 uppercase text-[10px] sticky top-0 border-b border-uvg-border font-bold">
             <tr>
               <th class="p-2">#</th>
               <th class="p-2">Título</th>
@@ -161,7 +161,7 @@
           </thead>
           <tbody id="tablaCuerpo" class="divide-y divide-uvg-border">
             <tr>
-              <td colspan="5" class="p-4 text-center text-slate-500">No hay libros evaluados en esta sesión.</td>
+              <td colspan="5" class="p-4 text-center text-slate-400">No hay libros evaluados en esta sesión.</td>
             </tr>
           </tbody>
         </table>
@@ -170,34 +170,34 @@
   </div>
 
   <!-- MODAL DE CÁMARA EN VIVO -->
-  <div id="modalCamara" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-    <div class="bg-uvg-card border border-uvg-border rounded-xl max-w-md w-full p-4 space-y-3 shadow-xl">
+  <div id="modalCamara" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white border border-uvg-border rounded-xl max-w-md w-full p-4 space-y-3 shadow-2xl">
       <div class="flex justify-between items-center">
-        <h3 id="modalCamaraTitulo" class="text-sm font-bold text-uvg-gold">Capturar Foto</h3>
-        <button onclick="cerrarCamara()" class="text-slate-400 hover:text-white text-lg">&times;</button>
+        <h3 id="modalCamaraTitulo" class="text-sm font-bold text-uvg">Capturar Foto</h3>
+        <button onclick="cerrarCamara()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
       </div>
       <div class="relative w-full aspect-square bg-black rounded-lg overflow-hidden flex items-center justify-center border border-uvg-border">
         <video id="videoFeed" autoplay playsinline class="w-full h-full object-cover"></video>
       </div>
       <div class="flex gap-2">
-        <button onclick="capturarSnapshot()" class="flex-1 py-2.5 bg-uvg hover:bg-uvg-dark text-white font-bold rounded-lg text-sm transition-colors">Tomar Foto</button>
-        <button onclick="cerrarCamara()" class="py-2.5 px-4 bg-uvg-surface hover:bg-uvg-border text-slate-300 rounded-lg text-sm transition-colors">Cancelar</button>
+        <button onclick="capturarSnapshot()" class="flex-1 py-2.5 bg-uvg hover:bg-uvg-dark text-white font-bold rounded-lg text-sm transition-colors shadow-sm">Tomar Foto</button>
+        <button onclick="cerrarCamara()" class="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm transition-colors">Cancelar</button>
       </div>
     </div>
   </div>
 
   <!-- MODAL DE CONFIGURACIÓN DE API KEY -->
-  <div id="modalApiKey" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-    <div class="bg-uvg-card border border-uvg-border rounded-xl max-w-sm w-full p-4 space-y-3 shadow-xl">
+  <div id="modalApiKey" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white border border-uvg-border rounded-xl max-w-sm w-full p-4 space-y-3 shadow-2xl">
       <div class="flex items-center gap-2">
-        <div class="w-2.5 h-2.5 bg-uvg-gold rounded-sm"></div>
-        <h3 class="text-sm font-bold text-white">Configuración de Gemini API</h3>
+        <div class="w-3 h-3 bg-[#FFC72C] rounded-sm"></div>
+        <h3 class="text-sm font-bold text-slate-900">Configuración de Gemini API</h3>
       </div>
-      <p class="text-xs text-slate-400">Pega la API Key generada. Se almacenará únicamente en este navegador para esta estación de trabajo.</p>
-      <input id="inputApiKeyModal" type="password" placeholder="AQ... o AIzaSy..." class="w-full bg-uvg-surface border border-uvg-border rounded p-2 text-xs text-white focus:outline-none focus:border-uvg">
+      <p class="text-xs text-slate-500">Pega la API Key generada. Se almacenará de forma local en este navegador.</p>
+      <input id="inputApiKeyModal" type="password" placeholder="AQ... o AIzaSy..." class="w-full bg-slate-50 border border-uvg-border rounded p-2 text-xs text-slate-800 focus:outline-none focus:border-uvg">
       <div class="flex gap-2">
-        <button onclick="guardarApiKey()" class="flex-1 py-2 bg-uvg hover:bg-uvg-dark text-white font-bold rounded text-xs transition-colors">Guardar Clave</button>
-        <button onclick="cerrarModalKey()" class="py-2 px-3 bg-uvg-surface hover:bg-uvg-border text-slate-300 rounded text-xs transition-colors">Cerrar</button>
+        <button onclick="guardarApiKey()" class="flex-1 py-2 bg-uvg hover:bg-uvg-dark text-white font-bold rounded text-xs transition-colors shadow-sm">Guardar Clave</button>
+        <button onclick="cerrarModalKey()" class="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs transition-colors">Cerrar</button>
       </div>
     </div>
   </div>
@@ -207,7 +207,6 @@
     let streamActivo = null;
     let slotActual = null;
 
-    // Gestión del historial persistente
     function obtenerHistorial() {
       return JSON.parse(localStorage.getItem('HISTORIAL_EXPURGO') || '[]');
     }
@@ -225,19 +224,19 @@
       document.getElementById('contadorLibros').textContent = historial.length;
 
       if (historial.length === 0) {
-        cuerpo.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500">No hay libros evaluados en esta sesión.</td></tr>';
+        cuerpo.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400">No hay libros evaluados en esta sesión.</td></tr>';
         return;
       }
 
       cuerpo.innerHTML = historial.slice().reverse().map((item, idx) => {
         const num = historial.length - idx;
-        const color = item.decision === 'DESCARTAR' ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold';
+        const color = item.decision === 'DESCARTAR' ? 'text-rose-600 font-bold' : 'text-uvg font-bold';
         return `
-          <tr class="hover:bg-uvg-card border-b border-uvg-border/50">
-            <td class="p-2 text-slate-500">${num}</td>
-            <td class="p-2 font-medium text-slate-200 truncate max-w-[150px]" title="${item.titulo}">${item.titulo}</td>
-            <td class="p-2 text-slate-400">${item.anio}</td>
-            <td class="p-2 text-slate-400 truncate max-w-[100px]" title="${item.estado}">${item.estado}</td>
+          <tr class="hover:bg-slate-50 border-b border-uvg-border">
+            <td class="p-2 text-slate-400">${num}</td>
+            <td class="p-2 font-medium text-slate-800 truncate max-w-[150px]" title="${item.titulo}">${item.titulo}</td>
+            <td class="p-2 text-slate-600">${item.anio}</td>
+            <td class="p-2 text-slate-600 truncate max-w-[100px]" title="${item.estado}">${item.estado}</td>
             <td class="p-2 ${color}">${item.decision}</td>
           </tr>
         `;
@@ -276,12 +275,11 @@
       }
     }
 
-    // Inicialización y persistencia de API Key
     function verificarApiKey() {
       const key = (localStorage.getItem('GEMINI_API_KEY') || '').trim();
       const dot = document.getElementById('keyStatusDot');
       if (key.length > 10) {
-        dot.className = "w-2 h-2 rounded-full bg-emerald-400";
+        dot.className = "w-2 h-2 rounded-full bg-emerald-500";
       } else {
         dot.className = "w-2 h-2 rounded-full bg-rose-500";
         abrirModalKey();
@@ -305,7 +303,6 @@
       verificarApiKey();
     }
 
-    // Manejo de Cámara Web / Cámara de iPad
     async function iniciarCamara(tipo) {
       slotActual = tipo;
       document.getElementById('modalCamaraTitulo').textContent = `Capturar ${tipo.toUpperCase()}`;
@@ -434,12 +431,12 @@ Responde ÚNICAMENTE un objeto JSON válido con este formato:
         }
       };
 
-      // Prioridad: Modelos más básicos y ligeros primero
+      // Cascada de modelos livianos
       const modelos = [
-        "gemini-2.5-flash-lite", // Más básico y liviano
-        "gemini-3.5-flash-lite", // Alternativa básica
-        "gemini-3.8-flash",      // Modelo estándar de contingencia
-        "gemini-3.7-flash"       // Respaldo final
+        "gemini-2.5-flash-lite",
+        "gemini-3.5-flash-lite",
+        "gemini-3.8-flash",
+        "gemini-3.7-flash"
       ];
 
       let exito = false;
@@ -474,7 +471,6 @@ Responde ÚNICAMENTE un objeto JSON válido con este formato:
 
             renderizarResultado(result);
 
-            // Guardar en el historial local persistente
             guardarEnHistorial({
               titulo: result.titulo || "Sin título",
               anio: result.anio_edicion || "Desconocido",
@@ -507,10 +503,10 @@ Responde ÚNICAMENTE un objeto JSON válido con este formato:
     function renderizarResultado(res) {
       const badge = document.getElementById('badgeDecision');
       if (res.decision_descarte) {
-        badge.className = "text-center font-black py-2.5 rounded text-base tracking-wider bg-rose-600 text-white shadow-md shadow-rose-950/50";
+        badge.className = "text-center font-black py-2.5 rounded text-base tracking-wider bg-rose-600 text-white shadow-sm";
         badge.textContent = "DESCARTAR / EXPURGAR";
       } else {
-        badge.className = "text-center font-black py-2.5 rounded text-base tracking-wider bg-uvg text-white shadow-md shadow-emerald-950/50 border border-emerald-500/30";
+        badge.className = "text-center font-black py-2.5 rounded text-base tracking-wider bg-uvg text-white shadow-sm";
         badge.textContent = "CONSERVAR EN COLECCIÓN";
       }
 
