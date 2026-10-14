@@ -5,55 +5,104 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>Validador de Colección - Expurgo Bibliotecario</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Paleta extendida del Brandkit Institucional (Modo Claro) -->
   <script>
     tailwind.config = {
       theme: {
         extend: {
           colors: {
             uvg: {
-              DEFAULT: '#006837',      // Verde Primario
-              dark: '#004d28',         // Verde Hover / Énfasis
-              light: '#008746',        // Verde Claro
-              gold: '#D97706',         // Dorado / Ámbar para contraste en fondo claro
-              bg: '#F8FAFC',           // Fondo general claro (Slate 50)
-              card: '#FFFFFF',         // Tarjetas blancas
-              surface: '#F1F5F9',      // Contenedores secundarios (Slate 100)
-              border: '#E2E8F0'        // Bordes suaves (Slate 200)
+              DEFAULT: '#006837',
+              dark: '#004d28',
+              light: '#008746',
+              gold: '#D97706',
+              bg: '#F8FAFC',
+              card: '#FFFFFF',
+              surface: '#F1F5F9',
+              border: '#E2E8F0'
             }
           }
         }
       }
     }
   </script>
-  <!-- SheetJS para generación de reportes Excel (.xlsx) -->
+  <!-- PapaParse para procesamiento rápido de CSV y SheetJS para reportes Excel -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body class="bg-uvg-bg text-slate-800 min-h-screen p-4 flex flex-col items-center">
 
   <div class="w-full max-w-xl space-y-4">
-    <!-- Encabezado con estado de la clave -->
+    <!-- Encabezado -->
     <header class="flex items-center justify-between border-b border-uvg-border pb-3">
       <div>
         <div class="flex items-center gap-2">
           <div class="w-3.5 h-3.5 rounded-sm bg-[#FFC72C] shadow-sm"></div>
           <h1 class="text-xl font-bold text-slate-900 tracking-wide">Expurgo Bibliotecario</h1>
         </div>
-        <p class="text-xs text-uvg font-medium ml-5">Inspección multimodal de ejemplares</p>
+        <p class="text-xs text-uvg font-medium ml-5">Inspección multimodal & Cruce con Koha</p>
       </div>
-      <button onclick="abrirModalKey()" class="text-xs bg-white hover:bg-slate-50 border border-uvg-border px-2.5 py-1.5 rounded-md flex items-center gap-1.5 text-slate-700 shadow-sm transition-colors">
-        <span id="keyStatusDot" class="w-2 h-2 rounded-full bg-rose-500"></span>
-        <span>Configurar API</span>
-      </button>
+      <div class="flex gap-2">
+        <button onclick="abrirModalKey()" class="text-xs bg-white hover:bg-slate-50 border border-uvg-border px-2.5 py-1.5 rounded-md flex items-center gap-1.5 text-slate-700 shadow-sm transition-colors">
+          <span id="keyStatusDot" class="w-2 h-2 rounded-full bg-rose-500"></span>
+          <span>Configurar API</span>
+        </button>
+      </div>
     </header>
 
-    <!-- Parámetro de año de corte y resumen de sesión -->
-    <section class="bg-uvg-card p-3 rounded-lg border border-uvg-border flex items-center justify-between shadow-sm">
-      <div>
-        <label for="corteAnio" class="text-xs font-semibold text-slate-700 block">Año de corte (Obsolescencia):</label>
-        <span class="text-[11px] text-slate-500">Evaluados en sesión: <strong id="contadorLibros" class="text-uvg font-bold">0</strong></span>
+    <!-- Barra de Estado de Catálogo Koha y Parámetros -->
+    <section class="bg-uvg-card p-3 rounded-lg border border-uvg-border space-y-3 shadow-sm">
+      <div class="flex items-center justify-between">
+        <div>
+          <label class="text-xs font-semibold text-slate-700 block">Catálogo Koha (Local CSV):</label>
+          <span id="txtEstadoCatalogo" class="text-[11px] text-slate-500">Ningún archivo cargado</span>
+        </div>
+        <label class="bg-white hover:bg-slate-50 border border-uvg-border text-slate-700 text-[11px] font-semibold px-2.5 py-1.5 rounded cursor-pointer shadow-sm transition-colors flex items-center gap-1">
+          📁 Cargar CSV
+          <input type="file" accept=".csv" class="hidden" onchange="cargarCatalogoCSV(event)">
+        </label>
       </div>
-      <input id="corteAnio" type="number" value="2018" class="w-24 bg-uvg-surface border border-uvg-border rounded px-2 py-1 text-xs text-right text-uvg-dark font-mono font-bold focus:outline-none focus:border-uvg">
+
+      <div class="flex items-center justify-between pt-2 border-t border-uvg-border">
+        <div>
+          <label for="corteAnio" class="text-xs font-semibold text-slate-700 block">Año de corte (Obsolescencia):</label>
+          <span class="text-[11px] text-slate-500">Evaluados en sesión: <strong id="contadorLibros" class="text-uvg font-bold">0</strong></span>
+        </div>
+        <input id="corteAnio" type="number" value="2018" class="w-24 bg-uvg-surface border border-uvg-border rounded px-2 py-1 text-xs text-right text-uvg-dark font-mono font-bold focus:outline-none focus:border-uvg">
+      </div>
+    </section>
+
+    <!-- Búsqueda / Código de Barras Koha -->
+    <section class="bg-uvg-card p-3 rounded-lg border border-uvg-border space-y-2 shadow-sm">
+      <label for="inputBarcode" class="text-xs font-bold text-slate-700 flex items-center justify-between">
+        <span>Código de Barras del Ejemplar (Koha):</span>
+        <span class="text-[10px] text-slate-400 font-normal">Opcional pero recomendado</span>
+      </label>
+      <div class="flex gap-2">
+        <input id="inputBarcode" type="text" placeholder="Escanea o escribe el código de barras..." class="flex-1 bg-uvg-surface border border-uvg-border rounded p-2 text-xs text-slate-800 font-mono focus:outline-none focus:border-uvg" oninput="buscarEnCatalogo()">
+        <button onclick="buscarEnCatalogo()" class="bg-uvg-surface hover:bg-slate-200 border border-uvg-border px-3 py-2 rounded text-xs font-semibold text-slate-700">Buscar</button>
+      </div>
+
+      <!-- Ficha de datos Koha encontrados -->
+      <div id="fichaKoha" class="hidden text-xs bg-slate-50 border border-emerald-200 p-2.5 rounded space-y-1 text-slate-700">
+        <p class="font-bold text-uvg flex items-center gap-1">
+          <span>✓ Ejemplar localizado en Koha:</span>
+          <span id="kohaTitulo" class="font-semibold text-slate-800 truncate"></span>
+        </p>
+        <div class="grid grid-cols-3 gap-2 pt-1 text-[11px]">
+          <div class="bg-white p-1.5 rounded border border-slate-200">
+            <span class="text-slate-400 block text-[10px]">Préstamos:</span>
+            <strong id="kohaPrestamos" class="text-slate-900 font-mono">0</strong>
+          </div>
+          <div class="bg-white p-1.5 rounded border border-slate-200">
+            <span class="text-slate-400 block text-[10px]">Último Préstamo:</span>
+            <strong id="kohaUltimoPrestamo" class="text-slate-900 font-mono">Nunca</strong>
+          </div>
+          <div class="bg-white p-1.5 rounded border border-slate-200">
+            <span class="text-slate-400 block text-[10px]">Sin circular:</span>
+            <strong id="kohaAniosSinCircular" class="text-slate-900 font-mono">N/A</strong>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- Secciones de Captura de Fotos -->
@@ -114,18 +163,19 @@
 
     <!-- Indicador de carga -->
     <div id="loader" class="hidden text-center py-2 text-sm text-uvg-dark font-semibold animate-pulse">
-      <span id="loaderMsg">Analizando daños físicos y metadatos con Gemini...</span>
+      <span id="loaderMsg">Analizando daños físicos, obsolescencia y circulación con Gemini...</span>
     </div>
 
-    <!-- Tarjeta de Resultados Individual -->
+    <!-- Tarjeta de Resultados -->
     <section id="cardResultado" class="hidden bg-uvg-card p-4 rounded-lg border border-uvg-border space-y-3 shadow-md">
       <div id="badgeDecision" class="text-center font-black py-2.5 rounded text-base tracking-wider"></div>
       
       <div class="text-xs space-y-1.5 text-slate-700 bg-uvg-surface p-3 rounded border border-uvg-border">
         <p><strong class="text-slate-900">Título:</strong> <span id="resTitulo"></span></p>
-        <p><strong class="text-slate-900">Año de Edición:</strong> <span id="resAnio"></span></p>
-        <p><strong class="text-slate-900">Daño Físico / Humedad:</strong> <span id="resDano"></span></p>
-        <p><strong class="text-slate-900">Dictamen Técnico:</strong> <span id="resMotivo"></span></p>
+        <p><strong class="text-slate-900">Año de Edición / Área:</strong> <span id="resAnio"></span></p>
+        <p><strong class="text-slate-900">Daño Físico / Estado:</strong> <span id="resDano"></span></p>
+        <p><strong class="text-slate-900">Categoría de Dictamen:</strong> <span id="resCategoria" class="font-bold"></span></p>
+        <p><strong class="text-slate-900">Motivo Técnico:</strong> <span id="resMotivo"></span></p>
       </div>
 
       <button onclick="limpiar()" class="w-full py-2 bg-uvg hover:bg-uvg-dark text-white text-xs font-semibold rounded transition-colors shadow-sm">
@@ -133,7 +183,7 @@
       </button>
     </section>
 
-    <!-- Historial y Exportación -->
+    <!-- Historial y Exportación a Excel -->
     <section class="bg-uvg-card p-4 rounded-lg border border-uvg-border space-y-3 shadow-sm">
       <div class="flex items-center justify-between">
         <h2 class="text-xs font-bold text-slate-800">Registro de Libros Evaluados</h2>
@@ -153,15 +203,16 @@
           <thead class="bg-uvg-surface text-slate-600 uppercase text-[10px] sticky top-0 border-b border-uvg-border font-bold">
             <tr>
               <th class="p-2">#</th>
+              <th class="p-2">Código</th>
               <th class="p-2">Título</th>
               <th class="p-2">Año</th>
-              <th class="p-2">Estado</th>
-              <th class="p-2">Decisión</th>
+              <th class="p-2">Préstamos</th>
+              <th class="p-2">Dictamen</th>
             </tr>
           </thead>
           <tbody id="tablaCuerpo" class="divide-y divide-uvg-border">
             <tr>
-              <td colspan="5" class="p-4 text-center text-slate-400">No hay libros evaluados en esta sesión.</td>
+              <td colspan="6" class="p-4 text-center text-slate-400">No hay libros evaluados en esta sesión.</td>
             </tr>
           </tbody>
         </table>
@@ -203,9 +254,112 @@
   </div>
 
   <script>
+    // ========================================================
+    // CRITERIOS DE DESCARTE MULTICRITERIO
+    // ========================================================
+    const CRITERIOS_EXPURGO = {
+      obtenerPrompt: (anioCorte, datosKoha) => `Eres un bibliotecario profesional y especialista en expurgo/descarte de colecciones universitarias.
+Analiza minuciosamente las 3 imágenes (Portada, Contraportada y Página legal/créditos).
+Año de referencia de corte general: ${anioCorte}.
+${datosKoha ? `Datos históricos de circulación en Koha para este ejemplar:
+- Código de barras: ${datosKoha.barcode || 'N/A'}
+- Título en Koha: ${datosKoha.titulo || 'N/A'}
+- Préstamos históricos totales: ${datosKoha.issues || 0}
+- Último préstamo registrado: ${datosKoha.datelastborrowed || 'Sin registro'}
+- Años sin movimiento: ${datosKoha.anios_sin_prestamo || 'N/A'}` : 'No se suministraron datos previos de Koha.'}
+
+REGLAS DE EVALUACIÓN OBLIGATORIAS:
+1. DAÑO FÍSICO VS. VALOR DOCUMENTAL:
+   - DAÑO BIOLÓGICO (Moho, hongos, humedad activa severa): DESCARTE o AISLAMIENTO INMEDIATO por riesgo de contagio a la estantería.
+   - DAÑO MECÁNICO (Lomo roto, páginas desprendidas, encuadernación fatigada):
+     * SI el contenido es de alta relevancia académica, obra clásica o referencia difícil de sustituir: NO DESCARTAR. Dictaminar "MANDAR_A_ENCUADERNAR".
+     * SI el contenido es genérico, fácilmente reemplazable o ya obsoleto: Dictaminar "DESCARTAR".
+
+2. ÁREA DE COMPUTACIÓN, TECNOLOGÍA Y TI (Regla de 5 años):
+   - Si la temática es desarrollo de software, manuales de informática, redes o tecnologías específicas:
+     * Si su antigüedad es MAYOR a 5 años respecto al año actual: Clasificar como ALTA OBSOLESCENCIA TÉCNICA (Candidato a descarte).
+     * Excepción: Obras teóricas fundamentales (ej. algoritmos base, arquitectura Von Neumann, compiladores clásicos).
+
+3. FACTOR DE CIRCULACIÓN (Koha):
+   - Si registra 0 préstamos o más de 4-5 años sin circular y supera el umbral de antigüedad: Reforzar decisión de DESCARTE por desuso y obsolescencia.
+   - Si supera la antigüedad pero registra préstamos frecuentes: Sugerir CONSERVAR por demanda activa de la comunidad universitaria.
+
+Responde ÚNICAMENTE un objeto JSON válido con esta estructura:
+{
+  "titulo": "string",
+  "autores": "string",
+  "anio_edicion": number,
+  "area_disciplina": "string (ej. Computación, Ingeniería, Humanidades, etc.)",
+  "tipo_dano": "NINGUNO" | "HUMEDAD_HONGO" | "MECANICO_DESGASTE",
+  "detalle_dano": "string conciso del estado físico",
+  "es_contenido_valioso_o_clasico": true/false,
+  "decision_descarte": true/false,
+  "categoria_dictamen": "DESCARTAR" | "CONSERVAR" | "MANDAR_A_ENCUADERNAR" | "REVISION_ESPECIALISTA",
+  "motivo": "justificación técnica concisa basada en estado físico, año y circulación"
+}`
+    };
+
     const fotos = { portada: null, contra: null, legal: null };
     let streamActivo = null;
     let slotActual = null;
+    let catalogoKoha = []; // Índice en memoria del CSV
+    let ejemplarKohaSeleccionado = null;
+
+    // Carga e indexación local del CSV de Koha
+    function cargarCatalogoCSV(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          catalogoKoha = results.data;
+          document.getElementById('txtEstadoCatalogo').textContent = `✓ ${catalogoKoha.length.toLocaleString()} ejemplares indexados localmente`;
+          document.getElementById('txtEstadoCatalogo').className = "text-[11px] text-emerald-600 font-bold";
+        },
+        error: function(err) {
+          alert("Error al procesar el archivo CSV: " + err.message);
+        }
+      });
+    }
+
+    function buscarEnCatalogo() {
+      const query = (document.getElementById('inputBarcode').value || '').trim().toLowerCase();
+      const ficha = document.getElementById('fichaKoha');
+
+      if (!query || catalogoKoha.length === 0) {
+        ficha.classList.add('hidden');
+        ejemplarKohaSeleccionado = null;
+        return;
+      }
+
+      // Buscar por código de barras exacto o por coincidencia en título
+      const match = catalogoKoha.find(item => {
+        const barcode = (item.Codigo_Barras || item.barcode || '').trim().toLowerCase();
+        const title = (item.Titulo || item.title || '').toLowerCase();
+        return barcode === query || (query.length > 4 && title.includes(query));
+      });
+
+      if (match) {
+        ejemplarKohaSeleccionado = {
+          barcode: match.Codigo_Barras || match.barcode || '',
+          titulo: match.Titulo || match.title || '',
+          issues: parseInt(match.Total_Prestamos_Historico || match.issues || '0', 10),
+          datelastborrowed: match.Ultimo_Prestamo || match.datelastborrowed || 'Sin registro',
+          anios_sin_prestamo: match.Anios_Sin_Prestamo || 'N/A'
+        };
+
+        document.getElementById('kohaTitulo').textContent = ejemplarKohaSeleccionado.titulo;
+        document.getElementById('kohaPrestamos').textContent = ejemplarKohaSeleccionado.issues;
+        document.getElementById('kohaUltimoPrestamo').textContent = ejemplarKohaSeleccionado.datelastborrowed;
+        document.getElementById('kohaAniosSinCircular').textContent = ejemplarKohaSeleccionado.anios_sin_prestamo;
+        ficha.classList.remove('hidden');
+      } else {
+        ficha.classList.add('hidden');
+        ejemplarKohaSeleccionado = null;
+      }
+    }
 
     function obtenerHistorial() {
       return JSON.parse(localStorage.getItem('HISTORIAL_EXPURGO') || '[]');
@@ -224,20 +378,21 @@
       document.getElementById('contadorLibros').textContent = historial.length;
 
       if (historial.length === 0) {
-        cuerpo.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400">No hay libros evaluados en esta sesión.</td></tr>';
+        cuerpo.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400">No hay libros evaluados en esta sesión.</td></tr>';
         return;
       }
 
       cuerpo.innerHTML = historial.slice().reverse().map((item, idx) => {
         const num = historial.length - idx;
-        const color = item.decision === 'DESCARTAR' ? 'text-rose-600 font-bold' : 'text-uvg font-bold';
+        const color = item.decision === 'DESCARTAR' ? 'text-rose-600 font-bold' : (item.dictamen === 'MANDAR_A_ENCUADERNAR' ? 'text-amber-600 font-bold' : 'text-uvg font-bold');
         return `
           <tr class="hover:bg-slate-50 border-b border-uvg-border">
             <td class="p-2 text-slate-400">${num}</td>
-            <td class="p-2 font-medium text-slate-800 truncate max-w-[150px]" title="${item.titulo}">${item.titulo}</td>
+            <td class="p-2 text-slate-600 font-mono">${item.barcode || 'N/A'}</td>
+            <td class="p-2 font-medium text-slate-800 truncate max-w-[140px]" title="${item.titulo}">${item.titulo}</td>
             <td class="p-2 text-slate-600">${item.anio}</td>
-            <td class="p-2 text-slate-600 truncate max-w-[100px]" title="${item.estado}">${item.estado}</td>
-            <td class="p-2 ${color}">${item.decision}</td>
+            <td class="p-2 text-slate-600">${item.prestamosKoha !== undefined ? item.prestamosKoha : '-'}</td>
+            <td class="p-2 ${color}">${item.dictamen || item.decision}</td>
           </tr>
         `;
       }).join('');
@@ -245,27 +400,28 @@
 
     function exportarExcel() {
       const historial = obtenerHistorial();
-      if (historial.length === 0) {
-        return alert("No hay libros registrados para exportar.");
-      }
+      if (historial.length === 0) return alert("No hay libros registrados para exportar.");
 
       const datosExcel = historial.map((h, i) => ({
         "N°": i + 1,
+        "Código de Barras": h.barcode || "N/A",
         "Título": h.titulo,
         "Año Edición": h.anio,
+        "Área": h.area || "N/A",
+        "Préstamos Históricos (Koha)": h.prestamosKoha !== undefined ? h.prestamosKoha : "N/D",
+        "Último Préstamo (Koha)": h.ultimoPrestamoKoha || "N/D",
         "Daño Físico": h.danoFisico ? "SÍ" : "NO",
-        "Detalle Daño / Estado": h.estado,
-        "Decisión": h.decision,
-        "Motivo / Dictamen": h.motivo,
-        "Fecha y Hora": h.fecha
+        "Estado / Daño": h.estado,
+        "Dictamen": h.dictamen || h.decision,
+        "Decisión Final": h.decision,
+        "Motivo Técnico": h.motivo,
+        "Fecha Evaluación": h.fecha
       }));
 
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(datosExcel);
-      XLSX.utils.book_append_sheet(wb, ws, "Expurgo_Libros");
-
-      const fechaStr = new Date().toISOString().slice(0, 10);
-      XLSX.writeFile(wb, `Reporte_Expurgo_${fechaStr}.xlsx`);
+      XLSX.utils.book_append_sheet(wb, ws, "Expurgo_Coleccion");
+      XLSX.writeFile(wb, `Reporte_Expurgo_${new Date().toISOString().slice(0, 10)}.xlsx`);
     }
 
     function borrarHistorial() {
@@ -315,7 +471,7 @@
         });
         document.getElementById('videoFeed').srcObject = streamActivo;
       } catch (err) {
-        alert("No se pudo acceder a la cámara. Revisa los permisos del navegador.");
+        alert("No se pudo acceder a la cámara. Revisa los permisos.");
         cerrarCamara();
       }
     }
@@ -325,9 +481,7 @@
       const canvas = document.createElement('canvas');
       canvas.width = video.videoWidth || 640;
       canvas.height = video.videoHeight || 480;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
       guardarImagenProcesada(canvas, slotActual);
       cerrarCamara();
     }
@@ -350,17 +504,10 @@
         img.onload = () => {
           const canvas = document.createElement('canvas');
           const maxDim = 1024;
-          let w = img.width;
-          let h = img.height;
-          if (w > h && w > maxDim) {
-            h = Math.round((h * maxDim) / w);
-            w = maxDim;
-          } else if (h > maxDim) {
-            w = Math.round((w * maxDim) / h);
-            h = maxDim;
-          }
-          canvas.width = w;
-          canvas.height = h;
+          let w = img.width, h = img.height;
+          if (w > h && w > maxDim) { h = Math.round((h * maxDim) / w); w = maxDim; }
+          else if (h > maxDim) { w = Math.round((w * maxDim) / h); h = maxDim; }
+          canvas.width = w; canvas.height = h;
           canvas.getContext('2d').drawImage(img, 0, 0, w, h);
           guardarImagenProcesada(canvas, tipo);
         };
@@ -372,7 +519,6 @@
     function guardarImagenProcesada(canvas, tipo) {
       const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
       fotos[tipo] = dataUrl.split(',')[1];
-
       const prev = document.getElementById(`prev-${tipo}`);
       prev.src = dataUrl;
       prev.classList.remove('hidden');
@@ -385,10 +531,7 @@
       const apiKey = (localStorage.getItem('GEMINI_API_KEY') || '').trim();
       const anioCorte = parseInt(document.getElementById('corteAnio').value, 10) || 2018;
 
-      if (!apiKey) {
-        abrirModalKey();
-        return;
-      }
+      if (!apiKey) return abrirModalKey();
       if (!fotos.portada || !fotos.contra || !fotos.legal) {
         return alert("Debes capturar las 3 fotos antes de evaluar.");
       }
@@ -398,51 +541,12 @@
       loader.classList.remove('hidden');
       document.getElementById('btnEvaluar').disabled = true;
 
-    const CRITERIOS_EXPURGO = {
-      obtenerPrompt: (anioCorte, datosKoha = null) => `Eres un bibliotecario profesional y especialista en expurgo/descarte de colecciones universitarias.
-Analiza minuciosamente las 3 imágenes (Portada, Contraportada y Página legal/créditos).
-Año de referencia de corte general: ${anioCorte}.
-${datosKoha ? `Datos históricos de circulación en Koha para este ejemplar:
-- Préstamos históricos totales: ${datosKoha.issues || 0}
-- Último préstamo registrado: ${datosKoha.ultimo_prestamo || 'Nunca / Sin registro'}
-- Años sin movimiento: ${datosKoha.anios_sin_prestamo || 'N/A'}` : ''}
-
-REGLAS DE EVALUACIÓN MULTICRITERIO OBLIGATORIAS:
-
-1. DAÑO FÍSICO VS. VALOR DOCUMENTAL (Tu criterio de daño con contenido crítico):
-   - DAÑO BIOLÓGICO ACTIVO (Moho, hongos, humedad severa): DESCARTE o AISLAMIENTO INMEDIATO por riesgo de contagio a la estantería.
-   - DAÑO MECÁNICO (Lomo quebrado, hojas sueltas, desgaste de tapas):
-     * SI el contenido es de alta relevancia académica, obra clásica o referencia difícil de sustituir: NO DESCARTAR. Dictaminar "MANDAR_A_ENCUADERNAR" o "CONSERVAR_REPARAR".
-     * SI el contenido es genérico, fácilmente reemplazable o ya obsoleto: Dictaminar "DESCARTAR".
-
-2. ÁREA DE COMPUTACIÓN, TECNOLOGÍA Y TI (Regla de 5 años):
-   - Si la temática es software, lenguajes de programación, sistemas operativos, herramientas web o hardware:
-     * Si su antigüedad es MAYOR a 5 años respecto al año actual: Clasificar como ALTA OBSOLESCENCIA TÉCNICA (Candidato prioritario a descarte).
-     * Excepción en computación: Obras fundacionales teóricas (ej. Algoritmos clásicos de Knuth/Cormen, autómatas, compiladores de Aho, arquitectura Von Neumann base).
-
-3. FACTOR CIRCULACIÓN (Koha):
-   - Si tiene 0 préstamos históricos o más de 4-5 años sin circular y supera el umbral de antigüedad: Reforzar la decisión de DESCARTE por desuso y obsolescencia.
-   - Si supera la antigüedad pero registra préstamos recientes frecuentes: Recomendar CONSERVAR por demanda activa demostrada.
-
-Responde ÚNICAMENTE un objeto JSON válido con esta estructura:
-{
-  "titulo": "string",
-  "autores": "string",
-  "anio_edicion": number,
-  "area_disciplina": "string (ej. Ciencias de la Computación, Electrónica, etc.)",
-  "tipo_dano": "NINGUNO" | "HUMEDAD_HONGO" | "MECANICO_DESGASTE",
-  "detalle_dano": "string conciso sobre el estado físico",
-  "es_contenido_valioso_o_clasico": true/false,
-  "decision_descarte": true/false,
-  "categoria_dictamen": "DESCARTAR" | "CONSERVAR" | "MANDAR_A_ENCUADERNAR" | "REVISION_ESPECIALISTA",
-  "motivo": "justificación técnica concisa cruzando estado físico, regla de 5 años de tecnología y circulación"
-}`
-    };
+      const promptFinal = CRITERIOS_EXPURGO.obtenerPrompt(anioCorte, ejemplarKohaSeleccionado);
 
       const payload = {
         contents: [{
           parts: [
-            { text: prompt },
+            { text: promptFinal },
             { inline_data: { mime_type: "image/jpeg", data: fotos.portada } },
             { inline_data: { mime_type: "image/jpeg", data: fotos.contra } },
             { inline_data: { mime_type: "image/jpeg", data: fotos.legal } }
@@ -489,16 +593,20 @@ Responde ÚNICAMENTE un objeto JSON válido con esta estructura:
             }
 
             const data = await res.json();
-            const jsonText = data.candidates[0].content.parts[0].text;
-            const result = JSON.parse(jsonText);
+            const result = JSON.parse(data.candidates[0].content.parts[0].text);
 
             renderizarResultado(result);
 
             guardarEnHistorial({
-              titulo: result.titulo || "Sin título",
+              barcode: ejemplarKohaSeleccionado ? ejemplarKohaSeleccionado.barcode : (document.getElementById('inputBarcode').value.trim() || 'N/A'),
+              titulo: result.titulo || (ejemplarKohaSeleccionado ? ejemplarKohaSeleccionado.titulo : "Sin título"),
               anio: result.anio_edicion || "Desconocido",
-              danoFisico: result.dano_humedad_o_fisico,
-              estado: result.dano_humedad_o_fisico ? result.detalle_dano : "Buen estado",
+              area: result.area_disciplina || "General",
+              prestamosKoha: ejemplarKohaSeleccionado ? ejemplarKohaSeleccionado.issues : undefined,
+              ultimoPrestamoKoha: ejemplarKohaSeleccionado ? ejemplarKohaSeleccionado.datelastborrowed : undefined,
+              danoFisico: result.tipo_dano !== "NINGUNO",
+              estado: result.detalle_dano || "Buen estado",
+              dictamen: result.categoria_dictamen || (result.decision_descarte ? "DESCARTAR" : "CONSERVAR"),
               decision: result.decision_descarte ? "DESCARTAR" : "CONSERVAR",
               motivo: result.motivo || "N/A",
               fecha: new Date().toLocaleString()
@@ -511,13 +619,10 @@ Responde ÚNICAMENTE un objeto JSON válido con esta estructura:
             break;
           }
         }
-
         if (exito) break;
       }
 
-      if (!exito) {
-        alert("Fallo en la evaluación: " + ultimoError + "\n\nIntenta de nuevo en unos segundos.");
-      }
+      if (!exito) alert("Fallo en la evaluación: " + ultimoError);
 
       loader.classList.add('hidden');
       document.getElementById('btnEvaluar').disabled = false;
@@ -525,17 +630,26 @@ Responde ÚNICAMENTE un objeto JSON válido con esta estructura:
 
     function renderizarResultado(res) {
       const badge = document.getElementById('badgeDecision');
-      if (res.decision_descarte) {
+      const dictamen = res.categoria_dictamen || (res.decision_descarte ? 'DESCARTAR' : 'CONSERVAR');
+
+      if (dictamen === 'DESCARTAR') {
         badge.className = "text-center font-black py-2.5 rounded text-base tracking-wider bg-rose-600 text-white shadow-sm";
         badge.textContent = "DESCARTAR / EXPURGAR";
+      } else if (dictamen === 'MANDAR_A_ENCUADERNAR') {
+        badge.className = "text-center font-black py-2.5 rounded text-base tracking-wider bg-amber-600 text-white shadow-sm";
+        badge.textContent = "MANDAR A ENCUADERNAR / CONSERVAR";
+      } else if (dictamen === 'REVISION_ESPECIALISTA') {
+        badge.className = "text-center font-black py-2.5 rounded text-base tracking-wider bg-sky-600 text-white shadow-sm";
+        badge.textContent = "REVISIÓN POR ESPECIALISTA / DOCENTE";
       } else {
         badge.className = "text-center font-black py-2.5 rounded text-base tracking-wider bg-uvg text-white shadow-sm";
         badge.textContent = "CONSERVAR EN COLECCIÓN";
       }
 
       document.getElementById('resTitulo').textContent = res.titulo || 'No identificado';
-      document.getElementById('resAnio').textContent = res.anio_edicion || 'Desconocido';
-      document.getElementById('resDano').textContent = res.dano_humedad_o_fisico ? `SÍ (${res.detalle_dano})` : 'Ninguno evidente';
+      document.getElementById('resAnio').textContent = `${res.anio_edicion || 'Desconocido'} (${res.area_disciplina || 'General'})`;
+      document.getElementById('resDano').textContent = res.detalle_dano || 'Ninguno evidente';
+      document.getElementById('resCategoria').textContent = dictamen;
       document.getElementById('resMotivo').textContent = res.motivo || 'N/A';
 
       document.getElementById('cardResultado').classList.remove('hidden');
@@ -553,6 +667,9 @@ Responde ÚNICAMENTE un objeto JSON válido con esta estructura:
         document.getElementById(`txt-${tipo}`).classList.remove('hidden');
       });
 
+      document.getElementById('inputBarcode').value = '';
+      document.getElementById('fichaKoha').classList.add('hidden');
+      ejemplarKohaSeleccionado = null;
       document.getElementById('cardResultado').classList.add('hidden');
     }
 
