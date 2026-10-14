@@ -398,23 +398,46 @@
       loader.classList.remove('hidden');
       document.getElementById('btnEvaluar').disabled = true;
 
-      const prompt = `Eres un bibliotecario profesional evaluando descarte/expurgo físico de libros.
-Analiza las 3 imágenes adjuntas (Portada, Contraportada y Página legal de créditos/copyright).
-Año límite de corte de la colección: ${anioCorte}.
-Criterios obligatorios:
-1. Daño físico: Verifica minuciosamente deformaciones por humedad/agua, marcas de secado, ondulaciones del papel, hongos o lomos rotos.
-2. Si el ejemplar tiene daño por agua/humedad, DEBE descartarse sin importar cuán reciente sea la edición.
-3. Si el ejemplar está en buen estado, verifica el año de edición o copyright: si es menor a ${anioCorte}, descartar por antigüedad u obsolescencia técnica.
+    const CRITERIOS_EXPURGO = {
+      obtenerPrompt: (anioCorte, datosKoha = null) => `Eres un bibliotecario profesional y especialista en expurgo/descarte de colecciones universitarias.
+Analiza minuciosamente las 3 imágenes (Portada, Contraportada y Página legal/créditos).
+Año de referencia de corte general: ${anioCorte}.
+${datosKoha ? `Datos históricos de circulación en Koha para este ejemplar:
+- Préstamos históricos totales: ${datosKoha.issues || 0}
+- Último préstamo registrado: ${datosKoha.ultimo_prestamo || 'Nunca / Sin registro'}
+- Años sin movimiento: ${datosKoha.anios_sin_prestamo || 'N/A'}` : ''}
 
-Responde ÚNICAMENTE un objeto JSON válido con este formato:
+REGLAS DE EVALUACIÓN MULTICRITERIO OBLIGATORIAS:
+
+1. DAÑO FÍSICO VS. VALOR DOCUMENTAL (Tu criterio de daño con contenido crítico):
+   - DAÑO BIOLÓGICO ACTIVO (Moho, hongos, humedad severa): DESCARTE o AISLAMIENTO INMEDIATO por riesgo de contagio a la estantería.
+   - DAÑO MECÁNICO (Lomo quebrado, hojas sueltas, desgaste de tapas):
+     * SI el contenido es de alta relevancia académica, obra clásica o referencia difícil de sustituir: NO DESCARTAR. Dictaminar "MANDAR_A_ENCUADERNAR" o "CONSERVAR_REPARAR".
+     * SI el contenido es genérico, fácilmente reemplazable o ya obsoleto: Dictaminar "DESCARTAR".
+
+2. ÁREA DE COMPUTACIÓN, TECNOLOGÍA Y TI (Regla de 5 años):
+   - Si la temática es software, lenguajes de programación, sistemas operativos, herramientas web o hardware:
+     * Si su antigüedad es MAYOR a 5 años respecto al año actual: Clasificar como ALTA OBSOLESCENCIA TÉCNICA (Candidato prioritario a descarte).
+     * Excepción en computación: Obras fundacionales teóricas (ej. Algoritmos clásicos de Knuth/Cormen, autómatas, compiladores de Aho, arquitectura Von Neumann base).
+
+3. FACTOR CIRCULACIÓN (Koha):
+   - Si tiene 0 préstamos históricos o más de 4-5 años sin circular y supera el umbral de antigüedad: Reforzar la decisión de DESCARTE por desuso y obsolescencia.
+   - Si supera la antigüedad pero registra préstamos recientes frecuentes: Recomendar CONSERVAR por demanda activa demostrada.
+
+Responde ÚNICAMENTE un objeto JSON válido con esta estructura:
 {
   "titulo": "string",
+  "autores": "string",
   "anio_edicion": number,
-  "dano_humedad_o_fisico": true/false,
-  "detalle_dano": "string conciso",
+  "area_disciplina": "string (ej. Ciencias de la Computación, Electrónica, etc.)",
+  "tipo_dano": "NINGUNO" | "HUMEDAD_HONGO" | "MECANICO_DESGASTE",
+  "detalle_dano": "string conciso sobre el estado físico",
+  "es_contenido_valioso_o_clasico": true/false,
   "decision_descarte": true/false,
-  "motivo": "string conciso"
-}`;
+  "categoria_dictamen": "DESCARTAR" | "CONSERVAR" | "MANDAR_A_ENCUADERNAR" | "REVISION_ESPECIALISTA",
+  "motivo": "justificación técnica concisa cruzando estado físico, regla de 5 años de tecnología y circulación"
+}`
+    };
 
       const payload = {
         contents: [{
