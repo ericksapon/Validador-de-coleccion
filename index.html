@@ -25,7 +25,6 @@
       }
     }
   </script>
-  <!-- PapaParse para procesamiento rápido de CSV y SheetJS para reportes Excel -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
@@ -41,12 +40,10 @@
         </div>
         <p class="text-xs text-uvg font-medium ml-5">Inspección multimodal & Cruce con Koha</p>
       </div>
-      <div class="flex gap-2">
-        <button onclick="abrirModalKey()" class="text-xs bg-white hover:bg-slate-50 border border-uvg-border px-2.5 py-1.5 rounded-md flex items-center gap-1.5 text-slate-700 shadow-sm transition-colors">
-          <span id="keyStatusDot" class="w-2 h-2 rounded-full bg-rose-500"></span>
-          <span>Configurar API</span>
-        </button>
-      </div>
+      <button onclick="abrirModalKey()" class="text-xs bg-white hover:bg-slate-50 border border-uvg-border px-2.5 py-1.5 rounded-md flex items-center gap-1.5 text-slate-700 shadow-sm transition-colors">
+        <span id="keyStatusDot" class="w-2 h-2 rounded-full bg-rose-500"></span>
+        <span>Configurar API</span>
+      </button>
     </header>
 
     <!-- Barra de Estado de Catálogo Koha y Parámetros -->
@@ -75,17 +72,17 @@
     <section class="bg-uvg-card p-3 rounded-lg border border-uvg-border space-y-2 shadow-sm">
       <label for="inputBarcode" class="text-xs font-bold text-slate-700 flex items-center justify-between">
         <span>Código de Barras del Ejemplar (Koha):</span>
-        <span class="text-[10px] text-slate-400 font-normal">Opcional pero recomendado</span>
+        <span class="text-[10px] text-slate-400 font-normal">Obligatorio para validar coincidencia</span>
       </label>
       <div class="flex gap-2">
-        <input id="inputBarcode" type="text" placeholder="Escanea o escribe el código de barras..." class="flex-1 bg-uvg-surface border border-uvg-border rounded p-2 text-xs text-slate-800 font-mono focus:outline-none focus:border-uvg" oninput="buscarEnCatalogo()">
+        <input id="inputBarcode" type="text" placeholder="Escanea o ingresa el código..." class="flex-1 bg-uvg-surface border border-uvg-border rounded p-2 text-xs text-slate-800 font-mono focus:outline-none focus:border-uvg" oninput="buscarEnCatalogo()">
         <button onclick="buscarEnCatalogo()" class="bg-uvg-surface hover:bg-slate-200 border border-uvg-border px-3 py-2 rounded text-xs font-semibold text-slate-700">Buscar</button>
       </div>
 
       <!-- Ficha de datos Koha encontrados -->
       <div id="fichaKoha" class="hidden text-xs bg-slate-50 border border-emerald-200 p-2.5 rounded space-y-1 text-slate-700">
         <p class="font-bold text-uvg flex items-center gap-1">
-          <span>✓ Ejemplar localizado en Koha:</span>
+          <span>✓ Registro en Koha:</span>
           <span id="kohaTitulo" class="font-semibold text-slate-800 truncate"></span>
         </p>
         <div class="grid grid-cols-3 gap-2 pt-1 text-[11px]">
@@ -109,7 +106,8 @@
     <section class="grid grid-cols-1 md:grid-cols-3 gap-3">
       <!-- 1. Portada -->
       <div class="bg-uvg-card p-3 rounded-lg border border-uvg-border flex flex-col items-center shadow-sm">
-        <span class="text-xs font-bold text-slate-700 mb-2">1. Portada</span>
+        <span class="text-xs font-bold text-slate-700 mb-1">1. Portada</span>
+        <span class="text-[10px] text-slate-400 mb-2">Para verificar título</span>
         <div class="w-full h-36 bg-uvg-surface border border-uvg-border rounded relative overflow-hidden flex items-center justify-center mb-2">
           <img id="prev-portada" class="hidden absolute inset-0 w-full h-full object-cover">
           <span id="txt-portada" class="text-xs text-slate-400 text-center px-2">Sin captura</span>
@@ -123,9 +121,10 @@
         </div>
       </div>
 
-      <!-- 2. Contraportada -->
+      <!-- 2. Daño / Líquido / Contraportada -->
       <div class="bg-uvg-card p-3 rounded-lg border border-uvg-border flex flex-col items-center shadow-sm">
-        <span class="text-xs font-bold text-slate-700 mb-2">2. Contraportada</span>
+        <span class="text-xs font-bold text-slate-700 mb-1">2. Zona de Daño</span>
+        <span class="text-[10px] text-amber-600 font-medium mb-2">Canto, mancha u ondas</span>
         <div class="w-full h-36 bg-uvg-surface border border-uvg-border rounded relative overflow-hidden flex items-center justify-center mb-2">
           <img id="prev-contra" class="hidden absolute inset-0 w-full h-full object-cover">
           <span id="txt-contra" class="text-xs text-slate-400 text-center px-2">Sin captura</span>
@@ -141,7 +140,8 @@
 
       <!-- 3. Hoja Legal -->
       <div class="bg-uvg-card p-3 rounded-lg border border-uvg-border flex flex-col items-center shadow-sm">
-        <span class="text-xs font-bold text-slate-700 mb-2">3. Hoja Legal / Año</span>
+        <span class="text-xs font-bold text-slate-700 mb-1">3. Hoja Legal</span>
+        <span class="text-[10px] text-slate-400 mb-2">Año y créditos</span>
         <div class="w-full h-36 bg-uvg-surface border border-uvg-border rounded relative overflow-hidden flex items-center justify-center mb-2">
           <img id="prev-legal" class="hidden absolute inset-0 w-full h-full object-cover">
           <span id="txt-legal" class="text-xs text-slate-400 text-center px-2">Sin captura</span>
@@ -158,22 +158,27 @@
 
     <!-- Botón Principal de Evaluación -->
     <button id="btnEvaluar" onclick="evaluarLibro()" class="w-full py-3.5 bg-uvg hover:bg-uvg-dark text-white font-bold rounded-lg transition-all text-sm shadow-md active:scale-[0.99]">
-      Evaluar Descarte
+      Evaluar Descarte & Coincidencia
     </button>
 
     <!-- Indicador de carga -->
     <div id="loader" class="hidden text-center py-2 text-sm text-uvg-dark font-semibold animate-pulse">
-      <span id="loaderMsg">Analizando daños físicos, obsolescencia y circulación con Gemini...</span>
+      <span id="loaderMsg">Analizando daños físicos, coincidencia con Koha y metadatos con Gemini...</span>
     </div>
 
     <!-- Tarjeta de Resultados -->
     <section id="cardResultado" class="hidden bg-uvg-card p-4 rounded-lg border border-uvg-border space-y-3 shadow-md">
+      <!-- Badge de Coincidencia de Catálogo -->
+      <div id="badgeCoincidencia" class="hidden text-center font-bold py-1.5 px-2 rounded text-xs"></div>
+
+      <!-- Badge de Decisión -->
       <div id="badgeDecision" class="text-center font-black py-2.5 rounded text-base tracking-wider"></div>
       
       <div class="text-xs space-y-1.5 text-slate-700 bg-uvg-surface p-3 rounded border border-uvg-border">
-        <p><strong class="text-slate-900">Título:</strong> <span id="resTitulo"></span></p>
+        <p><strong class="text-slate-900">Título Físico detectado:</strong> <span id="resTitulo"></span></p>
+        <p><strong class="text-slate-900">Coincidencia con Koha:</strong> <span id="resMatchKoha" class="font-semibold"></span></p>
         <p><strong class="text-slate-900">Año de Edición / Área:</strong> <span id="resAnio"></span></p>
-        <p><strong class="text-slate-900">Daño Físico / Estado:</strong> <span id="resDano"></span></p>
+        <p><strong class="text-slate-900">Daño Físico / Líquidos:</strong> <span id="resDano"></span></p>
         <p><strong class="text-slate-900">Categoría de Dictamen:</strong> <span id="resCategoria" class="font-bold"></span></p>
         <p><strong class="text-slate-900">Motivo Técnico:</strong> <span id="resMotivo"></span></p>
       </div>
@@ -204,9 +209,9 @@
             <tr>
               <th class="p-2">#</th>
               <th class="p-2">Código</th>
-              <th class="p-2">Título</th>
-              <th class="p-2">Año</th>
-              <th class="p-2">Préstamos</th>
+              <th class="p-2">Título Físico</th>
+              <th class="p-2">Coincide Koha</th>
+              <th class="p-2">Daño</th>
               <th class="p-2">Dictamen</th>
             </tr>
           </thead>
@@ -255,57 +260,67 @@
 
   <script>
     // ========================================================
-    // CRITERIOS DE DESCARTE MULTICRITERIO
+    // CRITERIOS DE DESCARTE CON VETO POR LÍQUIDOS Y MATCH KOHA
     // ========================================================
     const CRITERIOS_EXPURGO = {
-      obtenerPrompt: (anioCorte, datosKoha) => `Eres un bibliotecario profesional y especialista en expurgo/descarte de colecciones universitarias.
-Analiza minuciosamente las 3 imágenes (Portada, Contraportada y Página legal/créditos).
-Año de referencia de corte general: ${anioCorte}.
-${datosKoha ? `Datos históricos de circulación en Koha para este ejemplar:
-- Código de barras: ${datosKoha.barcode || 'N/A'}
-- Título en Koha: ${datosKoha.titulo || 'N/A'}
-- Préstamos históricos totales: ${datosKoha.issues || 0}
-- Último préstamo registrado: ${datosKoha.datelastborrowed || 'Sin registro'}
-- Años sin movimiento: ${datosKoha.anios_sin_prestamo || 'N/A'}` : 'No se suministraron datos previos de Koha.'}
+      obtenerPrompt: (anioCorte, datosKoha) => `Eres un conservador bibliográfico y auditor de colecciones universitarias evaluando descarte físico y exactitud de catálogo.
+Analiza con máximo detalle las 3 imágenes adjuntas (Portada, Zona de daño/canto/páginas y Hoja legal).
+Año límite de corte de la colección: ${anioCorte}.
 
-REGLAS DE EVALUACIÓN OBLIGATORIAS:
-1. DAÑO FÍSICO VS. VALOR DOCUMENTAL:
-   - DAÑO BIOLÓGICO (Moho, hongos, humedad activa severa): DESCARTE o AISLAMIENTO INMEDIATO por riesgo de contagio a la estantería.
-   - DAÑO MECÁNICO (Lomo roto, páginas desprendidas, encuadernación fatigada):
-     * SI el contenido es de alta relevancia académica, obra clásica o referencia difícil de sustituir: NO DESCARTAR. Dictaminar "MANDAR_A_ENCUADERNAR".
-     * SI el contenido es genérico, fácilmente reemplazable o ya obsoleto: Dictaminar "DESCARTAR".
+${datosKoha ? `DATOS DE KOHA ASOCIADOS AL CÓDIGO ESCANEADO:
+- Código de Barras: "${datosKoha.barcode}"
+- Título esperado según Koha: "${datosKoha.titulo}"
+- Autor esperado según Koha: "${datosKoha.autor || 'N/A'}"
+- Total Préstamos en Koha: ${datosKoha.issues || 0}
+- Último préstamo: ${datosKoha.datelastborrowed || 'Sin registro'}` : 'No se suministró código previo de Koha.'}
 
-2. ÁREA DE COMPUTACIÓN, TECNOLOGÍA Y TI (Regla de 5 años):
-   - Si la temática es desarrollo de software, manuales de informática, redes o tecnologías específicas:
-     * Si su antigüedad es MAYOR a 5 años respecto al año actual: Clasificar como ALTA OBSOLESCENCIA TÉCNICA (Candidato a descarte).
-     * Excepción: Obras teóricas fundamentales (ej. algoritmos base, arquitectura Von Neumann, compiladores clásicos).
+REGLAS DE EVALUACIÓN TÉCNICA (EN ORDEN ESTRICTO DE PRIORIDAD):
 
-3. FACTOR DE CIRCULACIÓN (Koha):
-   - Si registra 0 préstamos o más de 4-5 años sin circular y supera el umbral de antigüedad: Reforzar decisión de DESCARTE por desuso y obsolescencia.
-   - Si supera la antigüedad pero registra préstamos frecuentes: Sugerir CONSERVAR por demanda activa de la comunidad universitaria.
+1. AUDITORÍA DE COINCIDENCIA CON KOHA:
+   - Lee el título y autor reales impresos en las fotografías.
+   - Compara si el libro de las fotos coincide semánticamente con el "Título esperado según Koha".
+   - "coincide_con_koha": true si es el mismo libro; false si es una obra completamente distinta.
 
-Responde ÚNICAMENTE un objeto JSON válido con esta estructura:
+2. VETO ABSOLUTO POR DAÑO DE LÍQUIDO O CONTAMINACIÓN (PRIORIDAD MÁXIMA):
+   - Inspecciona minuciosamente en todas las fotos (especialmente en la 2da de daño):
+     * Ondulación o alabeo del papel (efecto arrugado por secado de agua).
+     * Manchas traslúcidas de líquidos (café, té, refresco, químicos) o marcas de marea (waterlines).
+     * Páginas pegadas entre sí por humedad, hinchazón del volumen o moho/hongos visibles.
+   - SI DETECTAS CUALQUIERA DE ESTOS DAÑOS POR LÍQUIDO/HUMEDAD:
+     * El libro queda INHABILITADO para préstamo por riesgo sanitario o deformación irreversible.
+     * "decision_descarte": true
+     * "categoria_dictamen": "DESCARTAR"
+     * "tipo_dano": "HUMEDAD_HONGO"
+     * ESTA REGLA ANULA EL AÑO DE EDICIÓN Y LOS PRÉSTAMOS. No debe conservarse bajo ninguna circunstancia.
+
+3. EVALUACIÓN DE OBSOLESCENCIA Y CIRCULACIÓN (Solo si NO tiene daño por líquido):
+   - Daño mecánico puro (desgaste de lomo o cubierta sin moho): si el libro es valioso o clásico, sugerir "MANDAR_A_ENCUADERNAR".
+   - Computación / Tecnología: Si año < ${anioCorte} o > 5 años y tiene baja circulación en Koha, clasificar en "DESCARTAR".
+   - Si supera la antigüedad pero tiene alta demanda en Koha: Sugerir "CONSERVAR".
+
+Responde ÚNICAMENTE un objeto JSON válido con este formato:
 {
-  "titulo": "string",
-  "autores": "string",
+  "titulo_detectado": "string",
+  "autores_detectados": "string",
   "anio_edicion": number,
-  "area_disciplina": "string (ej. Computación, Ingeniería, Humanidades, etc.)",
-  "tipo_dano": "NINGUNO" | "HUMEDAD_HONGO" | "MECANICO_DESGASTE",
-  "detalle_dano": "string conciso del estado físico",
-  "es_contenido_valioso_o_clasico": true/false,
+  "area_disciplina": "string",
+  "coincide_con_koha": true/false,
+  "discrepancia_koha_detalle": "string (explicar si no coincide; dejar vacío si coincide o no hay datos)",
+  "tipo_dano": "HUMEDAD_HONGO" | "MECANICO_DESGASTE" | "NINGUNO",
+  "dano_liquido_detectado": true/false,
+  "detalle_dano": "descripción visual concisa del daño observado",
   "decision_descarte": true/false,
   "categoria_dictamen": "DESCARTAR" | "CONSERVAR" | "MANDAR_A_ENCUADERNAR" | "REVISION_ESPECIALISTA",
-  "motivo": "justificación técnica concisa basada en estado físico, año y circulación"
+  "motivo": "justificación técnica concisa"
 }`
     };
 
     const fotos = { portada: null, contra: null, legal: null };
     let streamActivo = null;
     let slotActual = null;
-    let catalogoKoha = []; // Índice en memoria del CSV
+    let catalogoKoha = [];
     let ejemplarKohaSeleccionado = null;
 
-    // Carga e indexación local del CSV de Koha
     function cargarCatalogoCSV(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -334,17 +349,17 @@ Responde ÚNICAMENTE un objeto JSON válido con esta estructura:
         return;
       }
 
-      // Buscar por código de barras exacto o por coincidencia en título
       const match = catalogoKoha.find(item => {
         const barcode = (item.Codigo_Barras || item.barcode || '').trim().toLowerCase();
         const title = (item.Titulo || item.title || '').toLowerCase();
-        return barcode === query || (query.length > 4 && title.includes(query));
+        return barcode === query || (query.length > 5 && title.includes(query));
       });
 
       if (match) {
         ejemplarKohaSeleccionado = {
           barcode: match.Codigo_Barras || match.barcode || '',
           titulo: match.Titulo || match.title || '',
+          autor: match.Autor || match.author || '',
           issues: parseInt(match.Total_Prestamos_Historico || match.issues || '0', 10),
           datelastborrowed: match.Ultimo_Prestamo || match.datelastborrowed || 'Sin registro',
           anios_sin_prestamo: match.Anios_Sin_Prestamo || 'N/A'
@@ -385,13 +400,15 @@ Responde ÚNICAMENTE un objeto JSON válido con esta estructura:
       cuerpo.innerHTML = historial.slice().reverse().map((item, idx) => {
         const num = historial.length - idx;
         const color = item.decision === 'DESCARTAR' ? 'text-rose-600 font-bold' : (item.dictamen === 'MANDAR_A_ENCUADERNAR' ? 'text-amber-600 font-bold' : 'text-uvg font-bold');
+        const matchBadge = item.coincideKoha === false ? '<span class="text-rose-600 font-bold">NO</span>' : (item.coincideKoha === true ? '<span class="text-emerald-600 font-semibold">SÍ</span>' : '<span class="text-slate-400">-</span>');
+
         return `
           <tr class="hover:bg-slate-50 border-b border-uvg-border">
             <td class="p-2 text-slate-400">${num}</td>
             <td class="p-2 text-slate-600 font-mono">${item.barcode || 'N/A'}</td>
-            <td class="p-2 font-medium text-slate-800 truncate max-w-[140px]" title="${item.titulo}">${item.titulo}</td>
-            <td class="p-2 text-slate-600">${item.anio}</td>
-            <td class="p-2 text-slate-600">${item.prestamosKoha !== undefined ? item.prestamosKoha : '-'}</td>
+            <td class="p-2 font-medium text-slate-800 truncate max-w-[130px]" title="${item.titulo}">${item.titulo}</td>
+            <td class="p-2 text-center">${matchBadge}</td>
+            <td class="p-2 text-slate-600 truncate max-w-[110px]" title="${item.estado}">${item.estado}</td>
             <td class="p-2 ${color}">${item.dictamen || item.decision}</td>
           </tr>
         `;
@@ -405,22 +422,23 @@ Responde ÚNICAMENTE un objeto JSON válido con esta estructura:
       const datosExcel = historial.map((h, i) => ({
         "N°": i + 1,
         "Código de Barras": h.barcode || "N/A",
-        "Título": h.titulo,
+        "Título Físico": h.titulo,
+        "Título en Koha": h.tituloKoha || "N/A",
+        "Coincide con Koha": h.coincideKoha === false ? "DISCREPANCIA" : (h.coincideKoha === true ? "SÍ" : "NO_VERIFICADO"),
         "Año Edición": h.anio,
         "Área": h.area || "N/A",
-        "Préstamos Históricos (Koha)": h.prestamosKoha !== undefined ? h.prestamosKoha : "N/D",
-        "Último Préstamo (Koha)": h.ultimoPrestamoKoha || "N/D",
-        "Daño Físico": h.danoFisico ? "SÍ" : "NO",
-        "Estado / Daño": h.estado,
+        "Préstamos (Koha)": h.prestamosKoha !== undefined ? h.prestamosKoha : "N/D",
+        "Daño Líquido / Humedad": h.danoLiquido ? "SÍ" : "NO",
+        "Detalle Daño": h.estado,
         "Dictamen": h.dictamen || h.decision,
         "Decisión Final": h.decision,
         "Motivo Técnico": h.motivo,
-        "Fecha Evaluación": h.fecha
+        "Fecha": h.fecha
       }));
 
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(datosExcel);
-      XLSX.utils.book_append_sheet(wb, ws, "Expurgo_Coleccion");
+      XLSX.utils.book_append_sheet(wb, ws, "Expurgo_Auditoria");
       XLSX.writeFile(wb, `Reporte_Expurgo_${new Date().toISOString().slice(0, 10)}.xlsx`);
     }
 
@@ -479,8 +497,8 @@ Responde ÚNICAMENTE un objeto JSON válido con esta estructura:
     function capturarSnapshot() {
       const video = document.getElementById('videoFeed');
       const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
+      canvas.width = video.videoWidth || 1280;
+      canvas.height = video.videoHeight || 720;
       canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
       guardarImagenProcesada(canvas, slotActual);
       cerrarCamara();
@@ -503,7 +521,7 @@ Responde ÚNICAMENTE un objeto JSON válido con esta estructura:
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const maxDim = 1024;
+          const maxDim = 1280; // Mayor resolución para no perder ondas de agua
           let w = img.width, h = img.height;
           if (w > h && w > maxDim) { h = Math.round((h * maxDim) / w); w = maxDim; }
           else if (h > maxDim) { w = Math.round((w * maxDim) / h); h = maxDim; }
@@ -517,7 +535,7 @@ Responde ÚNICAMENTE un objeto JSON válido con esta estructura:
     }
 
     function guardarImagenProcesada(canvas, tipo) {
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
       fotos[tipo] = dataUrl.split(',')[1];
       const prev = document.getElementById(`prev-${tipo}`);
       prev.src = dataUrl;
@@ -558,7 +576,6 @@ Responde ÚNICAMENTE un objeto JSON válido con esta estructura:
         }
       };
 
-      // Cascada de modelos livianos
       const modelos = [
         "gemini-2.5-flash-lite",
         "gemini-3.5-flash-lite",
@@ -599,11 +616,13 @@ Responde ÚNICAMENTE un objeto JSON válido con esta estructura:
 
             guardarEnHistorial({
               barcode: ejemplarKohaSeleccionado ? ejemplarKohaSeleccionado.barcode : (document.getElementById('inputBarcode').value.trim() || 'N/A'),
-              titulo: result.titulo || (ejemplarKohaSeleccionado ? ejemplarKohaSeleccionado.titulo : "Sin título"),
+              titulo: result.titulo_detectado || (ejemplarKohaSeleccionado ? ejemplarKohaSeleccionado.titulo : "Sin título"),
+              tituloKoha: ejemplarKohaSeleccionado ? ejemplarKohaSeleccionado.titulo : null,
+              coincideKoha: ejemplarKohaSeleccionado ? result.coincide_con_koha : null,
               anio: result.anio_edicion || "Desconocido",
               area: result.area_disciplina || "General",
               prestamosKoha: ejemplarKohaSeleccionado ? ejemplarKohaSeleccionado.issues : undefined,
-              ultimoPrestamoKoha: ejemplarKohaSeleccionado ? ejemplarKohaSeleccionado.datelastborrowed : undefined,
+              danoLiquido: result.dano_liquido_detectado,
               danoFisico: result.tipo_dano !== "NINGUNO",
               estado: result.detalle_dano || "Buen estado",
               dictamen: result.categoria_dictamen || (result.decision_descarte ? "DESCARTAR" : "CONSERVAR"),
@@ -630,8 +649,30 @@ Responde ÚNICAMENTE un objeto JSON válido con esta estructura:
 
     function renderizarResultado(res) {
       const badge = document.getElementById('badgeDecision');
+      const badgeCoincidencia = document.getElementById('badgeCoincidencia');
       const dictamen = res.categoria_dictamen || (res.decision_descarte ? 'DESCARTAR' : 'CONSERVAR');
 
+      // Validación visual de Coincidencia con Koha
+      if (ejemplarKohaSeleccionado) {
+        badgeCoincidencia.classList.remove('hidden');
+        if (res.coincide_con_koha) {
+          badgeCoincidencia.className = "text-center font-bold py-1.5 px-2 rounded text-xs bg-emerald-100 text-emerald-800 border border-emerald-300";
+          badgeCoincidencia.textContent = "✓ Coincidencia confirmada con registro de Koha";
+          document.getElementById('resMatchKoha').textContent = "SÍ (Título físico coincide con el código)";
+          document.getElementById('resMatchKoha').className = "text-emerald-700 font-semibold";
+        } else {
+          badgeCoincidencia.className = "text-center font-bold py-1.5 px-2 rounded text-xs bg-rose-100 text-rose-800 border border-rose-300 animate-pulse";
+          badgeCoincidencia.textContent = "⚠️ DISCREPANCIA: El libro físico NO coincide con el registro de Koha";
+          document.getElementById('resMatchKoha').textContent = `DISCREPANCIA DETECTADA (${res.discrepancia_koha_detalle || 'El título no concuerda'})`;
+          document.getElementById('resMatchKoha').className = "text-rose-700 font-bold";
+        }
+      } else {
+        badgeCoincidencia.classList.add('hidden');
+        document.getElementById('resMatchKoha').textContent = "No verificado (Sin código Koha)";
+        document.getElementById('resMatchKoha').className = "text-slate-500";
+      }
+
+      // Badge de Decisión Técnica
       if (dictamen === 'DESCARTAR') {
         badge.className = "text-center font-black py-2.5 rounded text-base tracking-wider bg-rose-600 text-white shadow-sm";
         badge.textContent = "DESCARTAR / EXPURGAR";
@@ -646,9 +687,13 @@ Responde ÚNICAMENTE un objeto JSON válido con esta estructura:
         badge.textContent = "CONSERVAR EN COLECCIÓN";
       }
 
-      document.getElementById('resTitulo').textContent = res.titulo || 'No identificado';
+      document.getElementById('resTitulo').textContent = res.titulo_detectado || 'No identificado';
       document.getElementById('resAnio').textContent = `${res.anio_edicion || 'Desconocido'} (${res.area_disciplina || 'General'})`;
-      document.getElementById('resDano').textContent = res.detalle_dano || 'Ninguno evidente';
+      
+      const textoDano = res.dano_liquido_detectado ? `⚠️ DAÑO POR LÍQUIDO/HUMEDAD: ${res.detalle_dano}` : (res.detalle_dano || 'Ninguno evidente');
+      document.getElementById('resDano').textContent = textoDano;
+      document.getElementById('resDano').className = res.dano_liquido_detectado ? "text-rose-700 font-bold" : "text-slate-700";
+
       document.getElementById('resCategoria').textContent = dictamen;
       document.getElementById('resMotivo').textContent = res.motivo || 'N/A';
 
