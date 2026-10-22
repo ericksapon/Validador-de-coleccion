@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Auditoría & Expurgo Bibliotecario | Liquid Glass</title>
+  <title>Auditoría & Expurgo Bibliotecario</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -142,7 +142,6 @@
         <div>
           <div class="flex items-center gap-1.5">
             <h1 class="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">Expurgo Bibliotecario</h1>
-            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-uvg border border-emerald-200 uppercase tracking-widest">Liquid Glass</span>
           </div>
           <p class="text-xs text-slate-500 font-medium">Auditoría multimodal, Koha e inspección física con Gemini</p>
         </div>
@@ -206,7 +205,7 @@
           <div class="relative flex-1">
             <input id="inputBarcode" type="text" placeholder="Escanea con lector láser o escribe el barcode..." 
               class="w-full bg-white/90 border border-slate-300 rounded-xl pl-3 pr-8 py-2 text-xs text-slate-800 font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-uvg/30 shadow-inner"
-              oninput="buscarEnCatalogo()">
+              oninput="programarBusquedaCatalogo()" onkeydown="manejarTeclaBarcode(event)">
             <button onclick="limpiarBarcode()" class="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
@@ -458,6 +457,129 @@
     let streamActivo = null;
     let slotActualId = null;
     let catalogoKoha = [];
+    let indiceBarcodes = new Map();
+    let temporizadorBusqueda = null;
+    let versionCatalogo = 0;
+    let importandoCatalogo = false;
+
+    function normalizarBarcode(valor) {
+      return String(valor ?? '').trim().toLowerCase();
+    }
+
+    function instalarCatalogo(filas) {
+      catalogoKoha = filas;
+      indiceBarcodes = new Map();
+      filas.forEach(item => {
+        const codigo = normalizarBarcode(item.Codigo_Barras || item.barcode);
+        if (codigo && !indiceBarcodes.has(codigo)) indiceBarcodes.set(codigo, item);
+      });
+      buscarEnCatalogo();
+    }
+
+    function estadoCatalogo(mensaje, advertencia = false) {
+      const estado = document.getElementById('txtEstadoCatalogo');
+      estado.textContent = mensaje;
+      estado.className = `text-[11px] font-mono ${advertencia ? 'text-amber-700' : 'text-emerald-700'}`;
+    }
+
+    // La transacción confirma el guardado antes de mostrar que es persistente.
+    function abrirBaseCatalogo() {
+      return new Promise((resolve, reject) => {
+        if (!window.indexedDB) return reject(new Error('IndexedDB no disponible'));
+        const solicitud = indexedDB.open('ExpurgoBibliotecario', 1);
+        let finalizada = false;
+        const fallar = () => {
+          if (finalizada) return;
+          finalizada = true;
+          clearTimeout(limite);
+          reject(new Error('No se pudo abrir el almacenamiento del catálogo'));
+        };
+        const limite = setTimeout(fallar, 5000);
+        solicitud.onupgradeneeded = () => {
+          if (!solicitud.result.objectStoreNames.contains('catalogos')) {
+            solicitud.result.createObjectStore('catalogos');
+          }
+        };
+        solicitud.onerror = fallar;
+        solicitud.onblocked = fallar;
+        solicitud.onsuccess = () => {
+          const db = solicitud.result;
+          if (finalizada) { db.close(); return; }
+          finalizada = true;
+          clearTimeout(limite);
+          db.onversionchange = () => db.close();
+          resolve(db);
+        };
+      });
+    }
+
+    async function operarCatalogoPersistente(modo, datos) {
+      const db = await abrirBaseCatalogo();
+      try {
+        return await new Promise((resolve, reject) => {
+          const tx = db.transaction('catalogos', modo);
+          const almacen = tx.objectStore('catalogos');
+          const solicitud = modo === 'readwrite' ? almacen.put(datos, 'actual') : almacen.get('actual');
+          tx.oncomplete = () => resolve(solicitud.result);
+          tx.onerror = tx.onabort = () => reject(tx.error || new Error('Falló el almacenamiento del catálogo'));
+        });
+      } finally { db.close(); }
+    }
+
+    async function restaurarCatalogo() {
+      const versionInicial = versionCatalogo;
+      try {
+        const guardado = await operarCatalogoPersistente('readonly');
+        // Una importación iniciada por el operador tiene prioridad sobre la restauración.
+        if (versionInicial !== versionCatalogo || !guardado) return;
+        if (!Array.isArray(guardado.filas)) throw new Error('Catálogo guardado inválido');
+        instalarCatalogo(guardado.filas);
+        estadoCatalogo(`✓ ${catalogoKoha.length.toLocaleString()} ejemplares restaurados · ${guardado.nombre || 'CSV'}`);
+      } catch (error) {
+        if (versionInicial === versionCatalogo) {
+          estadoCatalogo('No se pudo restaurar el catálogo. Carga un CSV; seguirá disponible en esta sesión.', true);
+        }
+      }
+    }
+
+    function programarBusquedaCatalogo() {
+      clearTimeout(temporizadorBusqueda);
+      // No conservar la ficha del ejemplar anterior mientras se escribe otro código.
+      ejemplarKohaSeleccionado = null;
+      document.getElementById('fichaKoha').classList.add('hidden');
+      temporizadorBusqueda = setTimeout(buscarEnCatalogo, 180);
+    }
+
+    function manejarTeclaBarcode(event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        buscarEnCatalogo();
+      }
+    }
+
+    function tieneISBN(valor) {
+      const texto = String(valor ?? '').trim();
+      return Boolean(texto) && !/^(n\/?a|n\/?r|sin isbn(?: registrado)?|no disponible|undefined|null|-+)$/i.test(texto);
+    }
+
+    function coincidenciaKoha(res, koha = ejemplarKohaSeleccionado) {
+      if (!koha) return { estado: null, detalle: 'Sin registro de Koha' };
+      const titulo = res.coincide_titulo_koha;
+      const compararISBN = tieneISBN(koha.isbn);
+      const isbn = tieneISBN(res.isbn_detectado) ? res.coincide_isbn_koha : null;
+      if (titulo === false || (compararISBN && isbn === false)) {
+        const campos = [];
+        if (titulo === false) campos.push('título');
+        if (compararISBN && isbn === false) campos.push('ISBN');
+        return { estado: false, detalle: `Difiere del registro de Koha: ${campos.join(' e ')}.` };
+      }
+      if (titulo === true && (!compararISBN || isbn === true)) {
+        return { estado: true, detalle: compararISBN
+          ? '✓ Coincidencia confirmada por título e ISBN con Koha'
+          : '✓ Coincidencia por título; Koha no tiene ISBN para comparar' };
+      }
+      return { estado: null, detalle: 'Coincidencia pendiente: faltan datos legibles o una comparación concluyente.' };
+    }
     let ejemplarKohaSeleccionado = null;
 
     function renderizarGaleriaFotos() {
@@ -649,24 +771,52 @@
     // CATÁLOGO KOHA & BÚSQUEDA LOCAL
     // ========================================================
     function cargarCatalogoCSV(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      Papa.parse(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: function(results) {
-          catalogoKoha = results.data;
-          document.getElementById('txtEstadoCatalogo').textContent = `✓ ${catalogoKoha.length.toLocaleString()} ejemplares indexados en memoria`;
-          document.getElementById('txtEstadoCatalogo').className = "text-[11px] text-emerald-700 font-bold font-mono";
-        },
-        error: function(err) {
-          alert("Error al procesar el archivo CSV: " + err.message);
-        }
-      });
+      const input = event.target;
+      const file = input.files[0];
+      if (!file || importandoCatalogo) return;
+      versionCatalogo++;
+      importandoCatalogo = true;
+      input.disabled = true;
+      estadoCatalogo('Leyendo e indexando CSV...');
+      const terminar = () => { importandoCatalogo = false; input.disabled = false; input.value = ''; };
+      try {
+        Papa.parse(file, {
+          header: true,
+          skipEmptyLines: 'greedy',
+          transformHeader: h => h.replace(/^\uFEFF/, '').trim(),
+          complete: async function(results) {
+            try {
+              const columnas = results.meta?.fields || [];
+              if (results.errors.length || !columnas.some(c => ['Codigo_Barras', 'barcode'].includes(c))) {
+                throw new Error('Revisa el CSV: debe tener una columna Codigo_Barras o barcode y filas válidas.');
+              }
+              instalarCatalogo(results.data);
+              try {
+                await operarCatalogoPersistente('readwrite', { filas: results.data, nombre: file.name });
+                estadoCatalogo(`✓ ${catalogoKoha.length.toLocaleString()} ejemplares · guardados para próximas aperturas`);
+              } catch (error) {
+                estadoCatalogo(`⚠ ${catalogoKoha.length.toLocaleString()} ejemplares disponibles solo en esta sesión; no se pudo guardar el CSV.`, true);
+              }
+            } catch (error) {
+              estadoCatalogo(`CSV no importado. Se conserva el catálogo anterior (${catalogoKoha.length.toLocaleString()} ejemplares).`, true);
+              alert(error.message);
+            } finally { terminar(); }
+          },
+          error: function(err) {
+            estadoCatalogo('Error al leer el CSV. Se conserva el catálogo anterior.', true);
+            terminar();
+            alert('Error al procesar el archivo CSV: ' + err.message);
+          }
+        });
+      } catch (error) {
+        estadoCatalogo('No se pudo importar el CSV. Se conserva el catálogo anterior.', true);
+        terminar();
+        alert(error.message);
+      }
     }
 
     function buscarEnCatalogo() {
+      clearTimeout(temporizadorBusqueda);
       const query = (document.getElementById('inputBarcode').value || '').trim().toLowerCase();
       const ficha = document.getElementById('fichaKoha');
 
@@ -676,18 +826,16 @@
         return;
       }
 
-      const match = catalogoKoha.find(item => {
-        const barcode = (item.Codigo_Barras || item.barcode || '').trim().toLowerCase();
-        const title = (item.Titulo || item.title || '').toLowerCase();
-        return barcode === query || (query.length > 5 && title.includes(query));
-      });
+      const match = indiceBarcodes.get(query) || (query.length > 5
+        ? catalogoKoha.find(item => String(item.Titulo || item.title || '').toLowerCase().includes(query))
+        : null);
 
       if (match) {
         ejemplarKohaSeleccionado = {
           barcode: match.Codigo_Barras || match.barcode || '',
           titulo: match.Titulo || match.title || '',
           autor: match.Autor || match.author || '',
-          isbn: (match.ISBN || match.isbn || '').trim(),
+          isbn: String(match.ISBN || match.isbn || '').trim(),
           edicion_koha: match.Mencion_Edicion_MARC || match.edicion || 'No especificada',
           total_copias: parseInt(match.Total_Copias_Obra || match.copias || '1', 10),
           issues: parseInt(match.Total_Prestamos_Historico || match.issues || '0', 10),
@@ -747,6 +895,7 @@ MATRIZ DE DECISIÓN OBLIGATORIA (EVALUACIÓN EN ORDEN DE JERARQUÍA):
 2. AUDITORÍA DE EDICIÓN E IDENTIFICACIÓN (ISBN & HOJA LEGAL):
    - Extrae el ISBN físico (10 o 13 dígitos) y el número de edición impreso en la hoja legal.
    - Compara con el ISBN y edición de Koha:
+     * Si Koha no tiene ISBN, ignora la comparación de ISBN y verifica el título. Si falta evidencia legible, devuelve null en la coincidencia correspondiente; no inventes una coincidencia ni una discrepancia.
      * Si el ISBN o la edición no coinciden con el registro de Koha: reportar discrepancia de catálogo.
      * Si el ejemplar físico es una edición obsoleta (superada) y en catálogo ya existen ediciones posteriores: penalizar hacia descarte.
 
@@ -787,6 +936,8 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
     const esperar = (ms) => new Promise(res => setTimeout(res, ms));
 
     async function evaluarLibro() {
+      buscarEnCatalogo();
+      const kohaEvaluado = ejemplarKohaSeleccionado ? { ...ejemplarKohaSeleccionado } : null;
       const apiKey = (localStorage.getItem('GEMINI_API_KEY') || '').trim();
       const anioCorte = parseInt(document.getElementById('corteAnio').value, 10) || 2018;
 
@@ -802,7 +953,7 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
       loader.classList.remove('hidden');
       document.getElementById('btnEvaluar').disabled = true;
 
-      const promptFinal = CRITERIOS_EXPURGO.obtenerPrompt(anioCorte, ejemplarKohaSeleccionado);
+      const promptFinal = CRITERIOS_EXPURGO.obtenerPrompt(anioCorte, kohaEvaluado);
 
       const partes = [{ text: promptFinal }];
       fotosValidas.forEach(slot => {
@@ -859,20 +1010,20 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
             const data = await res.json();
             const result = JSON.parse(data.candidates[0].content.parts[0].text);
 
-            renderizarResultado(result);
+            renderizarResultado(result, kohaEvaluado);
 
             guardarEnHistorial({
-              barcode: ejemplarKohaSeleccionado ? ejemplarKohaSeleccionado.barcode : (document.getElementById('inputBarcode').value.trim() || 'N/A'),
-              titulo: result.titulo_detectado || (ejemplarKohaSeleccionado ? ejemplarKohaSeleccionado.titulo : "Sin título"),
-              tituloKoha: ejemplarKohaSeleccionado ? ejemplarKohaSeleccionado.titulo : null,
+              barcode: kohaEvaluado ? kohaEvaluado.barcode : (document.getElementById('inputBarcode').value.trim() || 'N/A'),
+              titulo: result.titulo_detectado || (kohaEvaluado ? kohaEvaluado.titulo : "Sin título"),
+              tituloKoha: kohaEvaluado ? kohaEvaluado.titulo : null,
               isbnDetectado: result.isbn_detectado || "N/A",
-              isbnKoha: ejemplarKohaSeleccionado ? ejemplarKohaSeleccionado.isbn : null,
+              isbnKoha: kohaEvaluado ? kohaEvaluado.isbn : null,
               edicionDetectada: result.edicion_detectada || "N/A",
-              coincideKoha: ejemplarKohaSeleccionado ? (result.coincide_titulo_koha ?? result.coincide_isbn_koha) : null,
+              coincideKoha: coincidenciaKoha(result, kohaEvaluado).estado,
               anio: result.anio_edicion || "Desconocido",
               area: result.area_disciplina || "General",
               criterioAplicado: result.criterio_principal_aplicado || "N/A",
-              prestamosKoha: ejemplarKohaSeleccionado ? ejemplarKohaSeleccionado.issues : undefined,
+              prestamosKoha: kohaEvaluado ? kohaEvaluado.issues : undefined,
               danoLiquido: result.dano_liquido_detectado,
               danoFisico: result.tipo_dano !== "NINGUNO",
               estado: result.detalle_dano || "Buen estado",
@@ -898,23 +1049,20 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
       document.getElementById('btnEvaluar').disabled = false;
     }
 
-    function renderizarResultado(res) {
+    function renderizarResultado(res, koha = ejemplarKohaSeleccionado) {
       const badge = document.getElementById('badgeDecision');
       const badgeCoincidencia = document.getElementById('badgeCoincidencia');
       const dictamen = res.categoria_dictamen || (res.decision_descarte ? 'DESCARTAR' : 'CONSERVAR');
 
-      if (ejemplarKohaSeleccionado) {
-        badgeCoincidencia.classList.remove('hidden');
-        const coincideTitulo = res.coincide_titulo_koha !== false;
-        const coincideISBN = res.coincide_isbn_koha !== false;
-
-        if (coincideTitulo && coincideISBN) {
-          badgeCoincidencia.className = "text-center font-bold py-2 px-3 rounded-xl text-xs bg-emerald-100/90 text-uvg-deep border border-emerald-300 shadow-sm";
-          badgeCoincidencia.textContent = "✓ Coincidencia confirmada con registro bibliográfico de Koha";
-        } else {
-          badgeCoincidencia.className = "text-center font-bold py-2 px-3 rounded-xl text-xs bg-rose-100 text-rose-800 border border-rose-300 shadow-sm animate-pulse";
-          badgeCoincidencia.textContent = `⚠️ DISCREPANCIA EN CATÁLOGO: ${res.discrepancia_catalogo_detalle || 'El título o ISBN difiere del registrado en Koha'}`;
-        }
+      if (koha) {
+        const coincidencia = coincidenciaKoha(res, koha);
+        const color = coincidencia.estado === true
+          ? 'bg-emerald-100/90 text-uvg-deep border-emerald-300'
+          : coincidencia.estado === false
+            ? 'bg-rose-100 text-rose-800 border-rose-300'
+            : 'bg-amber-50 text-amber-800 border-amber-300';
+        badgeCoincidencia.className = `text-center font-bold py-2 px-3 rounded-xl text-xs border shadow-sm ${color}`;
+        badgeCoincidencia.textContent = (coincidencia.estado === false ? '⚠ DISCREPANCIA EN CATÁLOGO: ' : '') + coincidencia.detalle;
       } else {
         badgeCoincidencia.classList.add('hidden');
       }
@@ -953,6 +1101,7 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
     }
 
     function limpiarFormulario() {
+      clearTimeout(temporizadorBusqueda);
       fotosArray.forEach(f => f.base64 = null);
       renderizarGaleriaFotos();
 
@@ -1078,6 +1227,7 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
     renderizarGaleriaFotos();
     verificarApiKey();
     renderizarTabla();
+    restaurarCatalogo();
   </script>
 </body>
 </html>
