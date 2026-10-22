@@ -102,7 +102,6 @@
       100% { transform: translate(-30%, -30%); }
     }
 
-    /* Scrollbars elegantes */
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
@@ -149,7 +148,6 @@
         </div>
       </div>
 
-      <!-- Quick Actions (API & Help) -->
       <button onclick="abrirModalKey()" class="crystal-chip hover:bg-white text-slate-700 text-xs font-semibold px-3 py-2 rounded-xl transition-all shadow-sm flex items-center gap-2 border border-slate-200 active:scale-95">
         <span id="keyStatusDot" class="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm animate-pulse"></span>
         <span class="hidden sm:inline">Configuración</span>
@@ -218,15 +216,20 @@
           </button>
         </div>
 
-        <!-- Ficha flotante de datos Koha encontrados -->
+        <!-- Ficha flotante enriquecida de datos Koha encontrados -->
         <div id="fichaKoha" class="hidden p-3 rounded-xl bg-gradient-to-r from-emerald-50/90 to-teal-50/70 border border-emerald-300/60 shadow-specular space-y-2">
           <div class="flex items-start justify-between">
-            <div>
+            <div class="space-y-0.5">
               <span class="text-[10px] uppercase tracking-wider font-extrabold text-uvg-soft">Coincidencia Registrada en Koha</span>
               <p id="kohaTitulo" class="text-xs font-bold text-slate-900 line-clamp-1"></p>
               <p id="kohaAutor" class="text-[11px] text-slate-600 italic"></p>
+              <div class="flex flex-wrap gap-2 pt-1 text-[10px] font-mono text-slate-600">
+                <span id="kohaISBN" class="bg-white/80 px-1.5 py-0.5 rounded border border-emerald-200">ISBN: -</span>
+                <span id="kohaEdicion" class="bg-white/80 px-1.5 py-0.5 rounded border border-emerald-200">Edición: -</span>
+                <span id="kohaCopias" class="bg-white/80 px-1.5 py-0.5 rounded border border-emerald-200">Copias en acervo: 1</span>
+              </div>
             </div>
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-uvg border border-emerald-300">Activo</span>
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-uvg border border-emerald-300 shrink-0">Activo</span>
           </div>
           <div class="grid grid-cols-3 gap-2 pt-1 border-t border-emerald-200/50">
             <div class="bg-white/80 p-1.5 rounded-lg border border-emerald-100 text-center">
@@ -235,7 +238,7 @@
             </div>
             <div class="bg-white/80 p-1.5 rounded-lg border border-emerald-100 text-center">
               <span class="block text-[10px] text-slate-400">Último Préstamo</span>
-              <strong id="kohaUltimoPrestamo" class="text-[11px] text-slate-800 font-mono">Nunca</strong>
+              <strong id="kohaUltimoPrestamo" class="text-[11px] text-slate-800 font-mono truncate block">Nunca</strong>
             </div>
             <div class="bg-white/80 p-1.5 rounded-lg border border-emerald-100 text-center">
               <span class="block text-[10px] text-slate-400">Años sin préstamo</span>
@@ -251,7 +254,7 @@
       <div class="flex items-center justify-between">
         <div>
           <h2 class="text-xs sm:text-sm font-bold text-slate-900">Evidencias Fotográficas Multimodales</h2>
-          <p class="text-[11px] text-slate-500">Mínimo 2 fotos recomendadas. Agrega tomas específicas de zonas dañadas.</p>
+          <p class="text-[11px] text-slate-500">Mínimo 2 fotos recomendadas (Portada y Hoja legal / Daño visible).</p>
         </div>
         <button onclick="agregarSlotFoto()" class="crystal-chip hover:bg-white text-uvg font-bold text-xs px-3 py-1.5 rounded-xl border border-uvg/20 shadow-sm flex items-center gap-1.5 transition active:scale-95">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
@@ -281,7 +284,7 @@
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
           </svg>
-          <span id="loaderMsg">Inspeccionando alabeo de hojas, hongos y datos de Koha...</span>
+          <span id="loaderMsg">Inspeccionando ISBN, edición, daños físicos y datos de Koha...</span>
         </div>
       </div>
     </div>
@@ -301,12 +304,20 @@
           <span id="resTitulo" class="font-bold text-slate-900 text-right max-w-[70%]"></span>
         </div>
         <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+          <span class="text-slate-400 font-medium">ISBN / Edición:</span>
+          <span id="resIsbnEdicion" class="font-bold text-slate-800 font-mono"></span>
+        </div>
+        <div class="flex justify-between items-center border-b border-slate-100 pb-2">
           <span class="text-slate-400 font-medium">Año / Disciplina:</span>
           <span id="resAnio" class="font-bold text-slate-800"></span>
         </div>
         <div class="flex justify-between items-start border-b border-slate-100 pb-2">
           <span class="text-slate-400 font-medium">Daño físico / Líquidos:</span>
           <span id="resDano" class="font-bold text-right max-w-[70%]"></span>
+        </div>
+        <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+          <span class="text-slate-400 font-medium">Criterio Rector:</span>
+          <span id="resCriterio" class="font-bold text-uvg-deep"></span>
         </div>
         <div class="flex justify-between items-center border-b border-slate-100 pb-2">
           <span class="text-slate-400 font-medium">Categoría Técnica:</span>
@@ -349,8 +360,8 @@
               <th class="p-2">#</th>
               <th class="p-2">Barcode</th>
               <th class="p-2">Título Físico</th>
-              <th class="p-2 text-center">Koha</th>
-              <th class="p-2">Estado / Daño</th>
+              <th class="p-2 text-center">ISBN / Koha</th>
+              <th class="p-2">Criterio</th>
               <th class="p-2">Dictamen</th>
             </tr>
           </thead>
@@ -380,7 +391,6 @@
 
       <div class="relative w-full aspect-square bg-black rounded-xl overflow-hidden flex items-center justify-center border border-slate-800 shadow-inner">
         <video id="videoFeed" autoplay playsinline class="w-full h-full object-cover"></video>
-        <!-- Retícula sutil para encuadre -->
         <div class="absolute inset-8 border border-white/20 rounded-lg pointer-events-none"></div>
       </div>
 
@@ -441,7 +451,7 @@
     // ========================================================
     let fotosArray = [
       { id: 'portada', tag: '1. Portada Principal', base64: null, obligatoria: true },
-      { id: 'hoja_legal', tag: '2. Hoja Legal / Copyright', base64: null, obligatoria: true },
+      { id: 'hoja_legal', tag: '2. Hoja Legal / ISBN / Edición', base64: null, obligatoria: true },
       { id: 'dano_liquido', tag: '3. Evidencia: Canto / Mancha / Alabeo', base64: null, obligatoria: false }
     ];
 
@@ -452,7 +462,7 @@
 
     function renderizarGaleriaFotos() {
       const contenedor = document.getElementById('galeriaFotos');
-      contenedor.innerHTML = fotosArray.map((slot, index) => {
+      contenedor.innerHTML = fotosArray.map((slot) => {
         const tieneFoto = Boolean(slot.base64);
         return `
           <div class="liquid-panel rounded-xl p-3 border border-slate-200/80 flex flex-col justify-between shadow-sm hover:shadow-md transition">
@@ -677,6 +687,9 @@
           barcode: match.Codigo_Barras || match.barcode || '',
           titulo: match.Titulo || match.title || '',
           autor: match.Autor || match.author || '',
+          isbn: (match.ISBN || match.isbn || '').trim(),
+          edicion_koha: match.Mencion_Edicion_MARC || match.edicion || 'No especificada',
+          total_copias: parseInt(match.Total_Copias_Obra || match.copias || '1', 10),
           issues: parseInt(match.Total_Prestamos_Historico || match.issues || '0', 10),
           datelastborrowed: match.Ultimo_Prestamo || match.datelastborrowed || 'Sin registro',
           anios_sin_prestamo: match.Anios_Sin_Prestamo || 'N/A'
@@ -684,6 +697,9 @@
 
         document.getElementById('kohaTitulo').textContent = ejemplarKohaSeleccionado.titulo;
         document.getElementById('kohaAutor').textContent = ejemplarKohaSeleccionado.autor ? `Autor: ${ejemplarKohaSeleccionado.autor}` : '';
+        document.getElementById('kohaISBN').textContent = `ISBN: ${ejemplarKohaSeleccionado.isbn || 'N/R'}`;
+        document.getElementById('kohaEdicion').textContent = `Edición: ${ejemplarKohaSeleccionado.edicion_koha}`;
+        document.getElementById('kohaCopias').textContent = `Copias en acervo: ${ejemplarKohaSeleccionado.total_copias}`;
         document.getElementById('kohaPrestamos').textContent = ejemplarKohaSeleccionado.issues;
         document.getElementById('kohaUltimoPrestamo').textContent = ejemplarKohaSeleccionado.datelastborrowed;
         document.getElementById('kohaAniosSinCircular').textContent = ejemplarKohaSeleccionado.anios_sin_prestamo;
@@ -703,55 +719,68 @@
     // CRITERIOS DE DESCARTE & MOTOR GEMINI API
     // ========================================================
     const CRITERIOS_EXPURGO = {
-      obtenerPrompt: (anioCorte, datosKoha) => `Eres un conservador bibliográfico y perito auditor de colecciones universitarias evaluando descarte/expurgo físico y exactitud de catálogo.
-Analiza con rigor científico todas las imágenes de evidencia adjuntas.
-Año de corte general para obsolescencia: ${anioCorte}.
+      obtenerPrompt: (anioCorte, datosKoha) => `Eres un bibliotecario profesional y perito en conservación y desarrollo de colecciones universitarias.
+Analiza todas las imágenes adjuntas (portada, zonas de daño físico/cantos y hoja legal con créditos e ISBN).
+Año de referencia general de corte: ${anioCorte}.
 
-${datosKoha ? `DATOS OFICIALES DE KOHA PARA EL CÓDIGO ESCANEADO:
-- Barcode: "${datosKoha.barcode}"
-- Título registrado en Koha: "${datosKoha.titulo}"
-- Autor registrado en Koha: "${datosKoha.autor || 'N/A'}"
-- Total histórico de préstamos: ${datosKoha.issues || 0}
-- Último préstamo registrado: ${datosKoha.datelastborrowed || 'Sin registro'}` : 'No se introdujo código de Koha previo.'}
+${datosKoha ? `DATOS DE KOHA VINCULADOS AL CÓDIGO DE BARRAS:
+- Código de Barras: "${datosKoha.barcode || 'N/A'}"
+- Título en Koha: "${datosKoha.titulo || 'N/A'}"
+- Autor en Koha: "${datosKoha.autor || 'N/A'}"
+- ISBN registrado en Koha: "${datosKoha.isbn || 'Sin ISBN registrado'}"
+- Edición registrada en Koha: "${datosKoha.edicion_koha || 'No especificada'}"
+- Copias existentes de esta obra: ${datosKoha.total_copias || 1} ejemplar(es)
+- Préstamos históricos totales: ${datosKoha.issues || 0}
+- Último préstamo registrado: ${datosKoha.datelastborrowed || 'Sin registro'}
+- Años desde su ingreso/sin circular: ${datosKoha.anios_sin_prestamo || 0} años` : 'Sin datos previos de Koha.'}
 
-REGLAS DE AUDITORÍA Y VETO ABSOLUTO (EN ORDEN ESTRICTO):
+MATRIZ DE DECISIÓN OBLIGATORIA (EVALUACIÓN EN ORDEN DE JERARQUÍA):
 
-1. AUDITORÍA DE INVENTARIO (Físico vs Koha):
-   - Extrae el título y autor reales visibles en las fotos.
-   - Compara si el libro físico es EXACTAMENTE la misma obra que el "Título registrado en Koha".
-   - "coincide_con_koha": true si concuerda; false si es una obra diferente.
+0. RESTRICCIÓN Y EXCEPCIÓN MAYOR (VALOR HISTÓRICO / PATRIMONIAL):
+   - Si la obra es de valor patrimonial, fondo antiguo, autor institucional local, temática regional no reeditada o pieza insustituible para investigación:
+   - ANULA todo criterio negativo de descarte. Dictaminar "CONSERVAR_FONDO_RESERVADO".
 
-2. VETO ABSOLUTO POR DAÑO BIOLÓGICO / LÍQUIDO (PRIORIDAD MÁXIMA):
-   - Inspecciona minuciosamente en las evidencias:
-     * Ondulación / alabeo del papel (arrugas por secado de agua o humedad).
-     * Manchas translúcidas de café, té, refresco, agua o químicos (waterlines / aureolas).
-     * Presencia de moho, hongos activos o secos, páginas pegadas entre sí.
-   - REGLA DE VETO: Si detectas CUALQUIER daño por líquido o hongo:
-     * El ejemplar queda INHABILITADO PARA PRÉSTAMO.
-     * "decision_descarte": true
-     * "categoria_dictamen": "DESCARTAR"
-     * "tipo_dano": "HUMEDAD_HONGO"
-     * ESTE VETO ANULA AÑO DE EDICIÓN Y PRÉSTAMOS. Debe descartarse sin excepción.
+1. ESTADO FÍSICO Y RIESGO BIOLÓGICO (VETO SANITARIO):
+   - Si presenta hongos, moho, acidez destructiva, deformación severa por agua/líquidos (alabeo de hojas) o mutilación grave:
+   - DESCARTE INMEDIATO. Si no hay daño biológico pero sí mecánico (lomo roto, hojas sueltas): evaluar si amerita "MANDAR_A_ENCUADERNAR" bajo la regla financiera de que el costo no supere 1/3 del valor comercial de un ejemplar nuevo.
 
-3. EVALUACIÓN DE OBSOLESCENCIA & CIRCULACIÓN (Solo si NO tiene daño por líquido):
-   - Daño mecánico puro (desgaste de lomo, tapas sueltas sin moho): si el contenido es valioso o clásico de referencia, sugerir "MANDAR_A_ENCUADERNAR".
-   - Computación / TI / Medicina: Si año < ${anioCorte} o > 5 años y registra baja circulación en Koha, clasificar en "DESCARTAR".
-   - Si supera la antigüedad pero registra alta demanda en Koha: Sugerir "CONSERVAR".
+2. AUDITORÍA DE EDICIÓN E IDENTIFICACIÓN (ISBN & HOJA LEGAL):
+   - Extrae el ISBN físico (10 o 13 dígitos) y el número de edición impreso en la hoja legal.
+   - Compara con el ISBN y edición de Koha:
+     * Si el ISBN o la edición no coinciden con el registro de Koha: reportar discrepancia de catálogo.
+     * Si el ejemplar físico es una edición obsoleta (superada) y en catálogo ya existen ediciones posteriores: penalizar hacia descarte.
 
-Responde ÚNICAMENTE un objeto JSON con este esquema estricto:
+3. OBSOLESCENCIA TEMÁTICA DIFERENCIADA:
+   - Ciencias de la Computación, Software, TI y Hardware: Umbral estricto de 3 años respecto al año en curso. (Descarte prioritario salvo obras teóricas fundacionales).
+   - Negocios, Economía y Administración: Umbral de 15 años.
+   - Humanidades, Arte, Filosofía y Literatura: Indefinido (no descartar por año; solo por estado físico o duplicidad).
+   - Obsolescencia de formato: Si requiere medios complementarios inexistentes (disquetes, CD-ROMs obsoletos).
+
+4. FRECUENCIA DE USO (CIRCULACIÓN KOHA):
+   - Regla de probabilidad: Si lleva más de 5 años en colección con 0 préstamos registrados (probabilidad de uso ≤ 2%): factor decisivo de descarte por desuso crónico.
+   - Si supera la antigüedad pero mantiene préstamos recientes: mantener en colección por demanda activa.
+
+5. DUPLICIDAD Y REDUNDANCIA:
+   - Si "Copias existentes de esta obra" > 4 y la demanda histórica es baja/moderada: descarte de ejemplares excedentes.
+
+Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
 {
   "titulo_detectado": "string",
   "autores_detectados": "string",
-  "anio_edicion": number,
-  "area_disciplina": "string",
-  "coincide_con_koha": true/false,
-  "discrepancia_koha_detalle": "string (explicar si no concuerda; vacío si coincide)",
+  "isbn_detectado": "string o N/A",
+  "edicion_detectada": "string (ej. 2da edición, reimpresión 2015, etc.)",
+  "coincide_isbn_koha": true/false/null,
+  "coincide_titulo_koha": true/false/null,
+  "discrepancia_catalogo_detalle": "string conciso o vacío",
+  "area_disciplina": "string (Computación | Negocios | Humanidades | etc.)",
   "tipo_dano": "HUMEDAD_HONGO" | "MECANICO_DESGASTE" | "NINGUNO",
   "dano_liquido_detectado": true/false,
-  "detalle_dano": "descripción visual concisa del daño observado",
+  "detalle_dano": "string conciso",
+  "es_patrimonial_o_historico": true/false,
+  "criterio_principal_aplicado": "string (ej. Veto Biológico | Obsolescencia 3 años TI | Frecuencia de uso <2% | Duplicidad >4 copias | Conservación Patrimonial)",
   "decision_descarte": true/false,
-  "categoria_dictamen": "DESCARTAR" | "CONSERVAR" | "MANDAR_A_ENCUADERNAR" | "REVISION_ESPECIALISTA",
-  "motivo": "justificación técnica concisa"
+  "categoria_dictamen": "DESCARTAR" | "CONSERVAR" | "MANDAR_A_ENCUADERNAR" | "CONSERVAR_FONDO_RESERVADO" | "REVISION_ESPECIALISTA",
+  "motivo": "justificación técnica concisa cruzando disciplina, edición/ISBN, estado físico y circulación"
 }`
     };
 
@@ -763,7 +792,6 @@ Responde ÚNICAMENTE un objeto JSON con este esquema estricto:
 
       if (!apiKey) return abrirModalKey();
 
-      // Filtrar fotos que realmente se hayan capturado
       const fotosValidas = fotosArray.filter(f => Boolean(f.base64));
       if (fotosValidas.length < 2) {
         return alert("Debes capturar al menos 2 fotografías (recomendado: Portada y Zona de daño u hoja legal) antes de evaluar.");
@@ -776,7 +804,6 @@ Responde ÚNICAMENTE un objeto JSON con este esquema estricto:
 
       const promptFinal = CRITERIOS_EXPURGO.obtenerPrompt(anioCorte, ejemplarKohaSeleccionado);
 
-      // Armar contenido dinámico con todas las fotos añadidas
       const partes = [{ text: promptFinal }];
       fotosValidas.forEach(slot => {
         partes.push({ text: `[Evidencia: ${slot.tag}]` });
@@ -796,7 +823,6 @@ Responde ÚNICAMENTE un objeto JSON con este esquema estricto:
         }
       };
 
-      // Cascada de modelos rápidos y de bajo consumo
       const modelos = [
         "gemini-2.5-flash-lite",
         "gemini-3.5-flash-lite",
@@ -835,14 +861,17 @@ Responde ÚNICAMENTE un objeto JSON con este esquema estricto:
 
             renderizarResultado(result);
 
-            // Registro persistente en Historial
             guardarEnHistorial({
               barcode: ejemplarKohaSeleccionado ? ejemplarKohaSeleccionado.barcode : (document.getElementById('inputBarcode').value.trim() || 'N/A'),
               titulo: result.titulo_detectado || (ejemplarKohaSeleccionado ? ejemplarKohaSeleccionado.titulo : "Sin título"),
               tituloKoha: ejemplarKohaSeleccionado ? ejemplarKohaSeleccionado.titulo : null,
-              coincideKoha: ejemplarKohaSeleccionado ? result.coincide_con_koha : null,
+              isbnDetectado: result.isbn_detectado || "N/A",
+              isbnKoha: ejemplarKohaSeleccionado ? ejemplarKohaSeleccionado.isbn : null,
+              edicionDetectada: result.edicion_detectada || "N/A",
+              coincideKoha: ejemplarKohaSeleccionado ? (result.coincide_titulo_koha ?? result.coincide_isbn_koha) : null,
               anio: result.anio_edicion || "Desconocido",
               area: result.area_disciplina || "General",
+              criterioAplicado: result.criterio_principal_aplicado || "N/A",
               prestamosKoha: ejemplarKohaSeleccionado ? ejemplarKohaSeleccionado.issues : undefined,
               danoLiquido: result.dano_liquido_detectado,
               danoFisico: result.tipo_dano !== "NINGUNO",
@@ -874,27 +903,31 @@ Responde ÚNICAMENTE un objeto JSON con este esquema estricto:
       const badgeCoincidencia = document.getElementById('badgeCoincidencia');
       const dictamen = res.categoria_dictamen || (res.decision_descarte ? 'DESCARTAR' : 'CONSERVAR');
 
-      // Feedback de Coincidencia con Koha
       if (ejemplarKohaSeleccionado) {
         badgeCoincidencia.classList.remove('hidden');
-        if (res.coincide_con_koha) {
+        const coincideTitulo = res.coincide_titulo_koha !== false;
+        const coincideISBN = res.coincide_isbn_koha !== false;
+
+        if (coincideTitulo && coincideISBN) {
           badgeCoincidencia.className = "text-center font-bold py-2 px-3 rounded-xl text-xs bg-emerald-100/90 text-uvg-deep border border-emerald-300 shadow-sm";
-          badgeCoincidencia.textContent = "✓ Coincidencia confirmada con registro de Koha";
+          badgeCoincidencia.textContent = "✓ Coincidencia confirmada con registro bibliográfico de Koha";
         } else {
           badgeCoincidencia.className = "text-center font-bold py-2 px-3 rounded-xl text-xs bg-rose-100 text-rose-800 border border-rose-300 shadow-sm animate-pulse";
-          badgeCoincidencia.textContent = `⚠️ DISCREPANCIA DE INVENTARIO: El libro físico NO coincide con el registro (${res.discrepancia_koha_detalle || 'Títulos diferentes'})`;
+          badgeCoincidencia.textContent = `⚠️ DISCREPANCIA EN CATÁLOGO: ${res.discrepancia_catalogo_detalle || 'El título o ISBN difiere del registrado en Koha'}`;
         }
       } else {
         badgeCoincidencia.classList.add('hidden');
       }
 
-      // Badge de Dictamen Final
       if (dictamen === 'DESCARTAR') {
         badge.className = "text-center font-extrabold py-3 rounded-xl text-base tracking-wider bg-rose-600 text-white shadow-md";
         badge.textContent = "DESCARTAR / EXPURGAR";
       } else if (dictamen === 'MANDAR_A_ENCUADERNAR') {
         badge.className = "text-center font-extrabold py-3 rounded-xl text-base tracking-wider bg-amber-600 text-white shadow-md";
         badge.textContent = "MANDAR A ENCUADERNAR / CONSERVAR";
+      } else if (dictamen === 'CONSERVAR_FONDO_RESERVADO') {
+        badge.className = "text-center font-extrabold py-3 rounded-xl text-base tracking-wider bg-purple-700 text-white shadow-md";
+        badge.textContent = "TRANSFERIR A FONDO RESERVADO / PATRIMONIAL";
       } else if (dictamen === 'REVISION_ESPECIALISTA') {
         badge.className = "text-center font-extrabold py-3 rounded-xl text-base tracking-wider bg-sky-600 text-white shadow-md";
         badge.textContent = "REVISIÓN POR ESPECIALISTA / DOCENTE";
@@ -904,12 +937,14 @@ Responde ÚNICAMENTE un objeto JSON con este esquema estricto:
       }
 
       document.getElementById('resTitulo').textContent = res.titulo_detectado || 'No identificado';
+      document.getElementById('resIsbnEdicion').textContent = `${res.isbn_detectado || 'Sin ISBN'} | ${res.edicion_detectada || 'Ed. no detectada'}`;
       document.getElementById('resAnio').textContent = `${res.anio_edicion || 'Desconocido'} (${res.area_disciplina || 'General'})`;
 
       const txtDano = res.dano_liquido_detectado ? `⚠️ DAÑO POR LÍQUIDO / HUMEDAD: ${res.detalle_dano}` : (res.detalle_dano || 'Ninguno evidente');
       document.getElementById('resDano').textContent = txtDano;
       document.getElementById('resDano').className = res.dano_liquido_detectado ? "font-bold text-rose-600" : "font-bold text-slate-800";
 
+      document.getElementById('resCriterio').textContent = res.criterio_principal_aplicado || 'N/A';
       document.getElementById('resCategoria').textContent = dictamen;
       document.getElementById('resMotivo').textContent = res.motivo || 'N/A';
 
@@ -918,7 +953,6 @@ Responde ÚNICAMENTE un objeto JSON con este esquema estricto:
     }
 
     function limpiarFormulario() {
-      // Limpiar fotos preservando slots
       fotosArray.forEach(f => f.base64 = null);
       renderizarGaleriaFotos();
 
@@ -955,7 +989,7 @@ Responde ÚNICAMENTE un objeto JSON con este esquema estricto:
 
       cuerpo.innerHTML = historial.slice().reverse().map((item, idx) => {
         const num = historial.length - idx;
-        const color = item.decision === 'DESCARTAR' ? 'text-rose-600 font-bold' : (item.dictamen === 'MANDAR_A_ENCUADERNAR' ? 'text-amber-600 font-bold' : 'text-uvg font-bold');
+        const color = item.decision === 'DESCARTAR' ? 'text-rose-600 font-bold' : (item.dictamen === 'MANDAR_A_ENCUADERNAR' ? 'text-amber-600 font-bold' : (item.dictamen === 'CONSERVAR_FONDO_RESERVADO' ? 'text-purple-700 font-bold' : 'text-uvg font-bold'));
         const matchBadge = item.coincideKoha === false ? '<span class="text-rose-600 font-bold">DISCREPANCIA</span>' : (item.coincideKoha === true ? '<span class="text-emerald-600 font-semibold">SÍ</span>' : '<span class="text-slate-400">-</span>');
 
         return `
@@ -964,7 +998,7 @@ Responde ÚNICAMENTE un objeto JSON con este esquema estricto:
             <td class="p-2 text-slate-600 font-mono">${item.barcode || 'N/A'}</td>
             <td class="p-2 font-medium text-slate-800 truncate max-w-[140px]" title="${item.titulo}">${item.titulo}</td>
             <td class="p-2 text-center text-[10px]">${matchBadge}</td>
-            <td class="p-2 text-slate-600 truncate max-w-[110px]" title="${item.estado}">${item.estado}</td>
+            <td class="p-2 text-slate-600 truncate max-w-[110px]" title="${item.criterioAplicado}">${item.criterioAplicado}</td>
             <td class="p-2 ${color}">${item.dictamen || item.decision}</td>
           </tr>
         `;
@@ -980,9 +1014,13 @@ Responde ÚNICAMENTE un objeto JSON con este esquema estricto:
         "Código de Barras": h.barcode || "N/A",
         "Título Físico Detectado": h.titulo,
         "Título en Koha": h.tituloKoha || "N/A",
+        "ISBN Físico": h.isbnDetectado || "N/A",
+        "ISBN en Koha": h.isbnKoha || "N/A",
+        "Edición Detectada": h.edicionDetectada || "N/A",
         "Coincide con Koha": h.coincideKoha === false ? "DISCREPANCIA" : (h.coincideKoha === true ? "SÍ" : "NO_VERIFICADO"),
         "Año Edición": h.anio,
         "Área / Disciplina": h.area || "N/A",
+        "Criterio Rector": h.criterioAplicado || "N/A",
         "Préstamos Históricos (Koha)": h.prestamosKoha !== undefined ? h.prestamosKoha : "N/D",
         "Daño Líquido / Humedad": h.danoLiquido ? "SÍ" : "NO",
         "Detalle Estado Físico": h.estado,
