@@ -284,6 +284,11 @@
       </div>
     </div>
 
+    <section class="liquid-panel rounded-2xl p-4 shadow-crystal space-y-2" aria-label="Sincronización Microsoft 365">
+      <p class="text-xs font-bold text-slate-700">Microsoft 365</p>
+      <p id="estadoM365" role="status" aria-live="polite" class="text-xs text-slate-600">Pendiente: se intentará enviar la próxima evaluación guardada.</p>
+    </section>
+
     <!-- Tarjeta de Resultados & Dictamen Liquid Crystal -->
     <section id="cardResultado" class="hidden liquid-panel rounded-2xl p-5 shadow-crystal space-y-4 border border-white">
       <!-- Badge de Coincidencia con Koha -->
@@ -1182,9 +1187,17 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
       return JSON.parse(localStorage.getItem('HISTORIAL_EXPURGO') || '[]');
     }
 
+    function mostrarEstadoM365(mensaje) {
+      const indicador = document.getElementById('estadoM365');
+      if (indicador) indicador.textContent = mensaje;
+    }
+
     async function enviarAMicrosoft365(item) {
       const webhookUrl = (localStorage.getItem('M365_WEBHOOK_URL') || 'https://default73c3e337a3174624bb03047663c4d9.ed.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/19/workflows/bc5e0846581749a69a714027a98abb43/triggers/manual/paths/invoke?api-version=1').trim();
-      if (!webhookUrl) return; // Si no está configurado, opera solo en modo local
+      if (!webhookUrl) {
+        mostrarEstadoM365('Sin URL configurada. El registro permanece en el historial local.');
+        return;
+      }
 
       const payload = {
         operador: localStorage.getItem('NOMBRE_OPERADOR') || 'Estantería',
@@ -1207,13 +1220,28 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
         fecha: String(item.fecha || new Date().toLocaleString())
       };
 
+      mostrarEstadoM365('Enviando la evaluación a Microsoft 365… El registro ya está guardado localmente.');
       try {
-        await fetch(webhookUrl, {
+        const respuesta = await fetch(webhookUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
+        if (!respuesta.ok) {
+          let detalle = 'Revisa la URL completa, el disparador y el esquema JSON del flujo.';
+          if (respuesta.status === 401 || respuesta.status === 403) {
+            detalle = 'La solicitud fue rechazada por autenticación o permisos. Revisa la configuración del disparador y copia de nuevo su URL completa después de guardar el flujo.';
+          } else if (respuesta.status === 404 || respuesta.status === 410) {
+            detalle = 'No se encontró el destino. Copia de nuevo la URL del disparador del flujo.';
+          } else if (respuesta.status === 429) {
+            detalle = 'El servicio está limitando las solicitudes. Revisa el historial del flujo antes de volver a intentarlo.';
+          }
+          mostrarEstadoM365(`Error HTTP ${respuesta.status}. ${detalle} El registro local se conserva.`);
+          return;
+        }
+        mostrarEstadoM365(`Solicitud aceptada por Microsoft 365 (HTTP ${respuesta.status}). Comprueba en el historial del flujo que finalice la escritura en Excel.`);
       } catch (err) {
+        mostrarEstadoM365('No se pudo confirmar el envío: puede ser un fallo de red o un bloqueo del navegador (CORS). El registro local se conserva. Revisa la consola del navegador y el historial del flujo antes de repetir.');
         console.warn('No se pudo sincronizar con M365, el registro permanece seguro en local:', err);
       }
     }
