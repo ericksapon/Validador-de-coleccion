@@ -160,32 +160,28 @@
     <!-- Parámetros de Operación & Catálogo Koha -->
     <section class="liquid-panel rounded-2xl p-4 sm:p-5 shadow-crystal space-y-4">
       
-      <!-- Fila 1: Carga de CSV Koha & Año de Corte -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-3 border-b border-slate-200/60">
+      <!-- Fila 1: Carga de CSV Koha & Contador de Sesión -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/60">
         <!-- Catálogo Koha -->
-        <div class="flex flex-col justify-between p-3 rounded-xl bg-white/70 border border-slate-200/80 shadow-sm">
-          <div class="flex items-center justify-between mb-2">
+        <div class="flex-1 flex flex-col justify-between p-3 rounded-xl bg-white/70 border border-slate-200/80 shadow-sm">
+          <div class="flex items-center justify-between mb-1.5">
             <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
               <svg class="w-3.5 h-3.5 text-uvg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7M4 7c0-2 1-3 3-3h10c2 0 3 1 3 3M4 7h16m-5 4h.01M9 11h.01M9 15h.01M15 15h.01"></path>
               </svg>
               Base de Datos Koha (Local)
             </span>
-            <label class="bg-uvg hover:bg-uvg-deep text-white text-[11px] font-semibold px-2.5 py-1 rounded-lg cursor-pointer transition shadow-sm active:scale-95">
-              📁 Cargar CSV
-              <input type="file" accept=".csv" class="hidden" onchange="cargarCatalogoCSV(event)">
-            </label>
+            <div class="flex items-center gap-1.5">
+              <label class="bg-uvg hover:bg-uvg-deep text-white text-[11px] font-semibold px-2.5 py-1 rounded-lg cursor-pointer transition shadow-sm active:scale-95">
+                📁 Cargar CSV
+                <input type="file" accept=".csv" class="hidden" onchange="cargarCatalogoCSV(event)">
+              </label>
+            </div>
           </div>
-          <span id="txtEstadoCatalogo" class="text-[11px] text-slate-500 font-mono">Sin archivo cargado en memoria</span>
-        </div>
-
-        <!-- Año de Corte de Obsolescencia -->
-        <div class="flex items-center justify-between p-3 rounded-xl bg-white/70 border border-slate-200/80 shadow-sm">
-          <div>
-            <label for="corteAnio" class="text-xs font-bold text-slate-700 block">Año de corte (Obsolescencia):</label>
-            <span class="text-[11px] text-slate-400">Evaluados hoy: <strong id="contadorLibros" class="text-uvg font-bold font-mono">0</strong></span>
+          <div class="flex items-center justify-between">
+            <span id="txtEstadoCatalogo" class="text-[11px] text-slate-500 font-mono truncate">Sin archivo cargado en memoria</span>
+            <span class="text-[11px] text-slate-400 shrink-0 ml-2">Evaluados hoy: <strong id="contadorLibros" class="text-uvg font-bold font-mono">0</strong></span>
           </div>
-          <input id="corteAnio" type="number" value="2018" class="w-20 bg-slate-50/80 border border-slate-300 rounded-lg px-2.5 py-1.5 text-sm text-right text-uvg-deep font-mono font-bold focus:outline-none focus:ring-2 focus:ring-uvg/30">
         </div>
       </div>
 
@@ -405,26 +401,56 @@
     </div>
   </div>
 
-  <!-- MODAL DE CONFIGURACIÓN DE API KEY -->
+  <!-- MODAL DE CONFIGURACIÓN RÁPIDA (API KEY + CSV KOHA + ENLACE DE DESPLIEGUE) -->
   <div id="modalApiKey" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4 z-50">
     <div class="liquid-panel bg-white/95 border border-white rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl">
-      <div class="flex items-center gap-2.5">
-        <div class="w-4 h-4 rounded bg-amber-400 shadow-sm"></div>
-        <h3 class="text-sm font-bold text-slate-900">Configuración de Gemini API</h3>
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-4 h-4 rounded bg-amber-400 shadow-sm"></div>
+          <h3 class="text-sm font-bold text-slate-900">Configuración Rápida</h3>
+        </div>
+        <button onclick="cerrarModalKey()" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
       </div>
-      <p class="text-xs text-slate-500 leading-relaxed">
-        Pega tu clave (soporta formato <code class="font-mono text-slate-700 bg-slate-100 px-1 rounded">AIzaSy...</code> y <code class="font-mono text-slate-700 bg-slate-100 px-1 rounded">AQ.Ab...</code>). Se guardará en el navegador local de esta estación de trabajo.
-      </p>
       
-      <div class="space-y-1">
-        <label class="text-[11px] font-bold text-slate-700 block">Gemini API Key:</label>
+      <!-- 1. Gemini API Key -->
+      <div class="space-y-1.5">
+        <label class="text-[11px] font-bold text-slate-700 flex items-center justify-between">
+          <span>1. Gemini API Key:</span>
+          <button onclick="pegarApiKeyPortapapeles()" class="text-[10px] text-uvg hover:underline font-semibold">📋 Pegar</button>
+        </label>
         <input id="inputApiKeyModal" type="password" placeholder="AIzaSy... o AQ..." 
           class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-800 font-mono focus:outline-none focus:ring-2 focus:ring-uvg/40">
       </div>
 
-      <div class="flex gap-2 pt-2">
+      <!-- 2. Catálogo CSV Koha (Archivo o URL Directa) -->
+      <div class="space-y-2 pt-2 border-t border-slate-200/70">
+        <label class="text-[11px] font-bold text-slate-700 block">2. Catálogo Koha (CSV):</label>
+        <div class="flex gap-2">
+          <label class="flex-1 py-2 bg-emerald-50 hover:bg-emerald-100 text-uvg-deep border border-emerald-200 rounded-xl text-xs font-bold text-center cursor-pointer transition">
+            📁 Subir archivo .CSV
+            <input type="file" accept=".csv" class="hidden" onchange="cargarCatalogoCSV(event)">
+          </label>
+        </div>
+        <div class="flex gap-1.5">
+          <input id="inputCsvUrlModal" type="url" placeholder="O pega URL directa de un CSV..." 
+            class="flex-1 bg-slate-50 border border-slate-300 rounded-xl p-2 text-[11px] text-slate-800 font-mono focus:outline-none focus:ring-2 focus:ring-uvg/40">
+          <button onclick="cargarCatalogoDesdeURL()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-[11px] font-bold transition">
+            Descargar
+          </button>
+        </div>
+      </div>
+
+      <!-- 3. Enlace / QR para otros dispositivos -->
+      <div class="pt-2 border-t border-slate-200/70">
+        <button onclick="copiarEnlaceConfiguracion()" class="w-full py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1.5">
+          <span>🔗 Copiar enlace con API Key para otro dispositivo</span>
+        </button>
+        <p class="text-[10px] text-slate-400 mt-1 text-center">Abre el enlace copiado en tu iPad o móvil para autoconfigurar la clave al instante.</p>
+      </div>
+
+      <div class="flex gap-2 pt-1">
         <button onclick="guardarApiKey()" class="flex-1 py-2.5 bg-uvg hover:bg-uvg-deep text-white font-bold rounded-xl text-xs transition shadow-sm">
-          Guardar Clave
+          Guardar y Listo
         </button>
         <button onclick="cerrarModalKey()" class="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold">
           Cerrar
@@ -461,6 +487,7 @@
     let temporizadorBusqueda = null;
     let versionCatalogo = 0;
     let importandoCatalogo = false;
+    let ejemplarKohaSeleccionado = null;
 
     function normalizarBarcode(valor) {
       return String(valor ?? '').trim().toLowerCase();
@@ -479,10 +506,9 @@
     function estadoCatalogo(mensaje, advertencia = false) {
       const estado = document.getElementById('txtEstadoCatalogo');
       estado.textContent = mensaje;
-      estado.className = `text-[11px] font-mono ${advertencia ? 'text-amber-700' : 'text-emerald-700'}`;
+      estado.className = `text-[11px] font-mono truncate ${advertencia ? 'text-amber-700' : 'text-emerald-700 font-bold'}`;
     }
 
-    // La transacción confirma el guardado antes de mostrar que es persistente.
     function abrirBaseCatalogo() {
       return new Promise((resolve, reject) => {
         if (!window.indexedDB) return reject(new Error('IndexedDB no disponible'));
@@ -530,21 +556,19 @@
       const versionInicial = versionCatalogo;
       try {
         const guardado = await operarCatalogoPersistente('readonly');
-        // Una importación iniciada por el operador tiene prioridad sobre la restauración.
         if (versionInicial !== versionCatalogo || !guardado) return;
         if (!Array.isArray(guardado.filas)) throw new Error('Catálogo guardado inválido');
         instalarCatalogo(guardado.filas);
-        estadoCatalogo(`✓ ${catalogoKoha.length.toLocaleString()} ejemplares restaurados · ${guardado.nombre || 'CSV'}`);
+        estadoCatalogo(`✓ ${catalogoKoha.length.toLocaleString()} ejemplares · ${guardado.nombre || 'CSV'}`);
       } catch (error) {
         if (versionInicial === versionCatalogo) {
-          estadoCatalogo('No se pudo restaurar el catálogo. Carga un CSV; seguirá disponible en esta sesión.', true);
+          estadoCatalogo('No se pudo restaurar el catálogo. Carga un CSV.', true);
         }
       }
     }
 
     function programarBusquedaCatalogo() {
       clearTimeout(temporizadorBusqueda);
-      // No conservar la ficha del ejemplar anterior mientras se escribe otro código.
       ejemplarKohaSeleccionado = null;
       document.getElementById('fichaKoha').classList.add('hidden');
       temporizadorBusqueda = setTimeout(buscarEnCatalogo, 180);
@@ -580,7 +604,6 @@
       }
       return { estado: null, detalle: 'Coincidencia pendiente: faltan datos legibles o una comparación concluyente.' };
     }
-    let ejemplarKohaSeleccionado = null;
 
     function renderizarGaleriaFotos() {
       const contenedor = document.getElementById('galeriaFotos');
@@ -768,8 +791,22 @@
     }
 
     // ========================================================
-    // CATÁLOGO KOHA & BÚSQUEDA LOCAL
+    // CATÁLOGO KOHA & BÚSQUEDA LOCAL / URL
     // ========================================================
+    async function procesarResultadoPapa(results, nombreOrigen) {
+      const columnas = results.meta?.fields || [];
+      if (results.errors.length || !columnas.some(c => ['Codigo_Barras', 'barcode'].includes(c))) {
+        throw new Error('Revisa el CSV: debe tener una columna Codigo_Barras o barcode y filas válidas.');
+      }
+      instalarCatalogo(results.data);
+      try {
+        await operarCatalogoPersistente('readwrite', { filas: results.data, nombre: nombreOrigen });
+        estadoCatalogo(`✓ ${catalogoKoha.length.toLocaleString()} ejemplares · guardados (${nombreOrigen})`);
+      } catch (error) {
+        estadoCatalogo(`⚠ ${catalogoKoha.length.toLocaleString()} ejemplares en sesión (${nombreOrigen})`, true);
+      }
+    }
+
     function cargarCatalogoCSV(event) {
       const input = event.target;
       const file = input.files[0];
@@ -786,33 +823,56 @@
           transformHeader: h => h.replace(/^\uFEFF/, '').trim(),
           complete: async function(results) {
             try {
-              const columnas = results.meta?.fields || [];
-              if (results.errors.length || !columnas.some(c => ['Codigo_Barras', 'barcode'].includes(c))) {
-                throw new Error('Revisa el CSV: debe tener una columna Codigo_Barras o barcode y filas válidas.');
-              }
-              instalarCatalogo(results.data);
-              try {
-                await operarCatalogoPersistente('readwrite', { filas: results.data, nombre: file.name });
-                estadoCatalogo(`✓ ${catalogoKoha.length.toLocaleString()} ejemplares · guardados para próximas aperturas`);
-              } catch (error) {
-                estadoCatalogo(`⚠ ${catalogoKoha.length.toLocaleString()} ejemplares disponibles solo en esta sesión; no se pudo guardar el CSV.`, true);
-              }
+              await procesarResultadoPapa(results, file.name);
             } catch (error) {
-              estadoCatalogo(`CSV no importado. Se conserva el catálogo anterior (${catalogoKoha.length.toLocaleString()} ejemplares).`, true);
+              estadoCatalogo(`CSV no importado (${catalogoKoha.length.toLocaleString()} activos).`, true);
               alert(error.message);
             } finally { terminar(); }
           },
           error: function(err) {
-            estadoCatalogo('Error al leer el CSV. Se conserva el catálogo anterior.', true);
+            estadoCatalogo('Error al leer el CSV.', true);
             terminar();
             alert('Error al procesar el archivo CSV: ' + err.message);
           }
         });
       } catch (error) {
-        estadoCatalogo('No se pudo importar el CSV. Se conserva el catálogo anterior.', true);
+        estadoCatalogo('No se pudo importar el CSV.', true);
         terminar();
         alert(error.message);
       }
+    }
+
+    function cargarCatalogoDesdeURL(urlParam) {
+      const urlInput = document.getElementById('inputCsvUrlModal');
+      const url = (urlParam || (urlInput ? urlInput.value : '')).trim();
+      if (!url || importandoCatalogo) return;
+
+      versionCatalogo++;
+      importandoCatalogo = true;
+      estadoCatalogo('Descargando CSV desde URL...');
+
+      Papa.parse(url, {
+        download: true,
+        header: true,
+        skipEmptyLines: 'greedy',
+        transformHeader: h => h.replace(/^\uFEFF/, '').trim(),
+        complete: async function(results) {
+          try {
+            await procesarResultadoPapa(results, 'URL remota');
+            if (!urlParam) cerrarModalKey();
+          } catch (error) {
+            estadoCatalogo('URL CSV inválida.', true);
+            alert(error.message);
+          } finally {
+            importandoCatalogo = false;
+          }
+        },
+        error: function(err) {
+          importandoCatalogo = false;
+          estadoCatalogo('No se pudo descargar el CSV desde la URL.', true);
+          alert('Error descargando CSV: ' + (err.message || 'Verifica permisos CORS de la URL'));
+        }
+      });
     }
 
     function buscarEnCatalogo() {
@@ -867,9 +927,11 @@
     // CRITERIOS DE DESCARTE & MOTOR GEMINI API
     // ========================================================
     const CRITERIOS_EXPURGO = {
-      obtenerPrompt: (anioCorte, datosKoha) => `Eres un bibliotecario profesional y perito en conservación y desarrollo de colecciones universitarias.
+      obtenerPrompt: (datosKoha) => {
+        const anioActual = new Date().getFullYear();
+        return `Eres un bibliotecario profesional y perito en conservación y desarrollo de colecciones universitarias.
 Analiza todas las imágenes adjuntas (portada, zonas de daño físico/cantos y hoja legal con créditos e ISBN).
-Año de referencia general de corte: ${anioCorte}.
+Año actual de referencia para cálculos de vigencia: ${anioActual}.
 
 ${datosKoha ? `DATOS DE KOHA VINCULADOS AL CÓDIGO DE BARRAS:
 - Código de Barras: "${datosKoha.barcode || 'N/A'}"
@@ -899,10 +961,10 @@ MATRIZ DE DECISIÓN OBLIGATORIA (EVALUACIÓN EN ORDEN DE JERARQUÍA):
      * Si el ISBN o la edición no coinciden con el registro de Koha: reportar discrepancia de catálogo.
      * Si el ejemplar físico es una edición obsoleta (superada) y en catálogo ya existen ediciones posteriores: penalizar hacia descarte.
 
-3. OBSOLESCENCIA TEMÁTICA DIFERENCIADA:
-   - Ciencias de la Computación, Software, TI y Hardware: Umbral estricto de 3 años respecto al año en curso. (Descarte prioritario salvo obras teóricas fundacionales).
-   - Negocios, Economía y Administración: Umbral de 15 años.
-   - Humanidades, Arte, Filosofía y Literatura: Indefinido (no descartar por año; solo por estado físico o duplicidad).
+3. OBSOLESCENCIA TEMÁTICA DIFERENCIADA (Respecto al año ${anioActual}):
+   - Ciencias de la Computación, Software, TI y Hardware: Umbral estricto de 3 años de antigüedad. (Descarte prioritario salvo obras teóricas fundacionales).
+   - Negocios, Economía y Administración: Umbral de 15 años de antigüedad.
+   - Humanidades, Arte, Filosofía y Literatura: Vigencia indefinida (NUNCA descartar por año; solo por daño biológico o duplicidad).
    - Obsolescencia de formato: Si requiere medios complementarios inexistentes (disquetes, CD-ROMs obsoletos).
 
 4. FRECUENCIA DE USO (CIRCULACIÓN KOHA):
@@ -918,10 +980,11 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
   "autores_detectados": "string",
   "isbn_detectado": "string o N/A",
   "edicion_detectada": "string (ej. 2da edición, reimpresión 2015, etc.)",
+  "anio_edicion": number,
   "coincide_isbn_koha": true/false/null,
   "coincide_titulo_koha": true/false/null,
   "discrepancia_catalogo_detalle": "string conciso o vacío",
-  "area_disciplina": "string (Computación | Negocios | Humanidades | etc.)",
+  "area_disciplina": "string (Computación | Negocios | Humanidades | Literatura | etc.)",
   "tipo_dano": "HUMEDAD_HONGO" | "MECANICO_DESGASTE" | "NINGUNO",
   "dano_liquido_detectado": true/false,
   "detalle_dano": "string conciso",
@@ -930,7 +993,8 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
   "decision_descarte": true/false,
   "categoria_dictamen": "DESCARTAR" | "CONSERVAR" | "MANDAR_A_ENCUADERNAR" | "CONSERVAR_FONDO_RESERVADO" | "REVISION_ESPECIALISTA",
   "motivo": "justificación técnica concisa cruzando disciplina, edición/ISBN, estado físico y circulación"
-}`
+}`;
+      }
     };
 
     const esperar = (ms) => new Promise(res => setTimeout(res, ms));
@@ -939,7 +1003,6 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
       buscarEnCatalogo();
       const kohaEvaluado = ejemplarKohaSeleccionado ? { ...ejemplarKohaSeleccionado } : null;
       const apiKey = (localStorage.getItem('GEMINI_API_KEY') || '').trim();
-      const anioCorte = parseInt(document.getElementById('corteAnio').value, 10) || 2018;
 
       if (!apiKey) return abrirModalKey();
 
@@ -953,7 +1016,7 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
       loader.classList.remove('hidden');
       document.getElementById('btnEvaluar').disabled = true;
 
-      const promptFinal = CRITERIOS_EXPURGO.obtenerPrompt(anioCorte, kohaEvaluado);
+      const promptFinal = CRITERIOS_EXPURGO.obtenerPrompt(kohaEvaluado);
 
       const partes = [{ text: promptFinal }];
       fotosValidas.forEach(slot => {
@@ -1193,8 +1256,27 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
     }
 
     // ========================================================
-    // GESTIÓN DE API KEY
+    // GESTIÓN DE API KEY & DESPLIEGUE RÁPIDO POR URL
     // ========================================================
+    function verificarParametrosURL() {
+      const params = new URLSearchParams(window.location.search);
+      const keyParam = params.get('api_key');
+      const csvParam = params.get('csv_url');
+      let limpiarUrl = false;
+
+      if (keyParam && keyParam.trim().length > 10) {
+        localStorage.setItem('GEMINI_API_KEY', keyParam.trim());
+        limpiarUrl = true;
+      }
+      if (csvParam) {
+        cargarCatalogoDesdeURL(csvParam.trim());
+        limpiarUrl = true;
+      }
+      if (limpiarUrl) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+
     function verificarApiKey() {
       const key = (localStorage.getItem('GEMINI_API_KEY') || '').trim();
       const dot = document.getElementById('keyStatusDot');
@@ -1223,7 +1305,32 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
       verificarApiKey();
     }
 
+    async function pegarApiKeyPortapapeles() {
+      try {
+        const texto = await navigator.clipboard.readText();
+        if (texto) document.getElementById('inputApiKeyModal').value = texto.trim();
+      } catch (e) {
+        alert("Pega manualmente manteniendo presionado el campo de texto.");
+      }
+    }
+
+    function copiarEnlaceConfiguracion() {
+      const key = (document.getElementById('inputApiKeyModal').value || localStorage.getItem('GEMINI_API_KEY') || '').trim();
+      if (!key) return alert("Primero ingresa o guarda tu API Key.");
+      const url = new URL(window.location.origin + window.location.pathname);
+      url.searchParams.set('api_key', key);
+      const csvUrl = (document.getElementById('inputCsvUrlModal').value || '').trim();
+      if (csvUrl) url.searchParams.set('csv_url', csvUrl);
+
+      navigator.clipboard.writeText(url.toString()).then(() => {
+        alert("✓ Enlace de configuración rápida copiado al portapapeles.\n\nÁbrelo o pásalo por QR al otro dispositivo y quedará configurado automáticamente.");
+      }).catch(() => {
+        prompt("Copia este enlace de configuración rápida:", url.toString());
+      });
+    }
+
     // Inicialización
+    verificarParametrosURL();
     renderizarGaleriaFotos();
     verificarApiKey();
     renderizarTabla();
