@@ -1182,11 +1182,48 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
       return JSON.parse(localStorage.getItem('HISTORIAL_EXPURGO') || '[]');
     }
 
+    async function enviarAMicrosoft365(item) {
+      const webhookUrl = (localStorage.getItem('M365_WEBHOOK_URL') || 'https://default73c3e337a3174624bb03047663c4d9.ed.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/19/workflows/bc5e0846581749a69a714027a98abb43/triggers/manual/paths/invoke?api-version=1').trim();
+      if (!webhookUrl) return; // Si no está configurado, opera solo en modo local
+
+      const payload = {
+        operador: localStorage.getItem('NOMBRE_OPERADOR') || 'Estantería',
+        barcode: String(item.barcode || 'N/A'),
+        titulo: String(item.titulo || ''),
+        tituloKoha: String(item.tituloKoha || 'N/A'),
+        isbnDetectado: String(item.isbnDetectado || 'N/A'),
+        isbnKoha: String(item.isbnKoha || 'N/A'),
+        edicionDetectada: String(item.edicionDetectada || 'N/A'),
+        coincideKoha: item.coincideKoha === false ? 'DISCREPANCIA' : (item.coincideKoha === true ? 'SÍ' : 'NO_VERIFICADO'),
+        anio: String(item.anio || ''),
+        area: String(item.area || ''),
+        criterioAplicado: String(item.criterioAplicado || ''),
+        prestamosKoha: String(item.prestamosKoha ?? 'N/D'),
+        danoLiquido: item.danoLiquido ? 'SÍ' : 'NO',
+        estado: String(item.estado || ''),
+        dictamen: String(item.dictamen || ''),
+        decision: String(item.decision || ''),
+        motivo: String(item.motivo || ''),
+        fecha: String(item.fecha || new Date().toLocaleString())
+      };
+
+      try {
+        await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch (err) {
+        console.warn('No se pudo sincronizar con M365, el registro permanece seguro en local:', err);
+      }
+    }
+
     function guardarEnHistorial(item) {
       const historial = obtenerHistorial();
       historial.push(item);
       localStorage.setItem('HISTORIAL_EXPURGO', JSON.stringify(historial));
       renderizarTabla();
+      void enviarAMicrosoft365(item);
     }
 
     function renderizarTabla() {
