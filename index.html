@@ -1193,7 +1193,7 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
     }
 
     async function enviarAMicrosoft365(item) {
-      const webhookUrl = (localStorage.getItem('M365_WEBHOOK_URL') || 'https://default73c3e337a3174624bb03047663c4d9.ed.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/19/workflows/bc5e0846581749a69a714027a98abb43/triggers/manual/paths/invoke?api-version=1').trim();
+      const webhookUrl = (localStorage.getItem('M365_WEBHOOK_URL') || 'https://default73c3e337a3174624bb03047663c4d9.ed.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/19/workflows/bc5e0846581749a69a714027a98abb43/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=iaP9T_bFqyNP8dvDzWNmPs-se25DdodNWFF4dSkuzOE').trim();
       if (!webhookUrl) {
         mostrarEstadoM365('Sin URL configurada. El registro permanece en el historial local.');
         return;
