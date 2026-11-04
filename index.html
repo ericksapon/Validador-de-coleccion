@@ -407,6 +407,13 @@
   </div>
 
   <!-- MODAL DE CONFIGURACIÓN RÁPIDA (API KEY + CSV KOHA + ENLACE DE DESPLIEGUE) -->
+  <!-- 0. Nombre del Operador / Zona -->
+<div class="space-y-1.5">
+  <label class="text-[11px] font-bold text-slate-700 block">Operador / Colección asignada:</label>
+  <input id="inputOperadorModal" type="text" placeholder="Ej. Luz - Literatura / Erick - TI" 
+    class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-uvg/40">
+</div>
+  
   <div id="modalApiKey" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4 z-50">
     <div class="liquid-panel bg-white/95 border border-white rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl">
       <div class="flex items-center justify-between">
@@ -1010,6 +1017,13 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
       const apiKey = (localStorage.getItem('GEMINI_API_KEY') || '').trim();
 
       if (!apiKey) return abrirModalKey();
+      
+      let operador = (localStorage.getItem('NOMBRE_OPERADOR') || '').trim();
+      if (!operador) {
+        operador = prompt("Ingresa tu nombre o colección asignada (ej. Luz - Literatura):", "");
+        if (!operador || !operador.trim()) return;
+        localStorage.setItem('NOMBRE_OPERADOR', operador.trim());
+      }
 
       const fotosValidas = fotosArray.filter(f => Boolean(f.base64));
       if (fotosValidas.length < 2) {
@@ -1353,22 +1367,24 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
       }
     }
 
-    function abrirModalKey() {
-      document.getElementById('inputApiKeyModal').value = localStorage.getItem('GEMINI_API_KEY') || '';
-      document.getElementById('modalApiKey').classList.remove('hidden');
-    }
+   function abrirModalKey() {
+  document.getElementById('inputApiKeyModal').value = localStorage.getItem('GEMINI_API_KEY') || '';
+  const inputOp = document.getElementById('inputOperadorModal');
+  if (inputOp) inputOp.value = localStorage.getItem('NOMBRE_OPERADOR') || '';
+  document.getElementById('modalApiKey').classList.remove('hidden');
+}
 
-    function cerrarModalKey() {
-      document.getElementById('modalApiKey').classList.add('hidden');
-    }
-
-    function guardarApiKey() {
-      const val = document.getElementById('inputApiKeyModal').value.trim();
-      if (!val) return alert("Por favor ingresa una clave válida.");
-      localStorage.setItem('GEMINI_API_KEY', val);
-      cerrarModalKey();
-      verificarApiKey();
-    }
+function guardarApiKey() {
+  const val = document.getElementById('inputApiKeyModal').value.trim();
+  const op = (document.getElementById('inputOperadorModal')?.value || '').trim();
+  if (!val) return alert("Por favor ingresa una clave válida.");
+  
+  localStorage.setItem('GEMINI_API_KEY', val);
+  if (op) localStorage.setItem('NOMBRE_OPERADOR', op);
+  
+  cerrarModalKey();
+  verificarApiKey();
+}
 
     async function pegarApiKeyPortapapeles() {
       try {
