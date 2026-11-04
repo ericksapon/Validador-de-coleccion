@@ -241,6 +241,21 @@
             </div>
           </div>
         </div>
+
+        <!-- Alerta Independiente de Libro Ya Escaneado -->
+        <div id="alertaDuplicado" class="hidden p-3 rounded-xl bg-amber-50/95 border border-amber-300 shadow-sm space-y-2 transition-all">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="space-y-0.5">
+              <span class="text-[10px] font-extrabold uppercase tracking-wider text-amber-800 flex items-center gap-1">
+                ⚠️ Ejemplar ya evaluado previamente
+              </span>
+              <p id="txtDetalleDuplicado" class="text-xs text-amber-900 font-medium"></p>
+            </div>
+            <button type="button" onclick="confirmarReescaneo()" class="shrink-0 bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg shadow-sm transition active:scale-95">
+              Confirmar y escanear de nuevo
+            </button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -284,8 +299,12 @@
       </div>
     </div>
 
+    <!-- Estado de Sincronización con Microsoft 365 -->
     <section class="liquid-panel rounded-2xl p-4 shadow-crystal space-y-2" aria-label="Sincronización Microsoft 365">
-      <p class="text-xs font-bold text-slate-700">Microsoft 365</p>
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-bold text-slate-700">Sincronización Microsoft 365</p>
+        <span id="badgeOperadorActivo" onclick="abrirModalKey()" class="text-[10px] font-mono bg-emerald-50 text-uvg-deep px-2 py-0.5 rounded-md border border-emerald-200 cursor-pointer hover:bg-emerald-100 transition">Operador: Sin asignar</span>
+      </div>
       <p id="estadoM365" role="status" aria-live="polite" class="text-xs text-slate-600">Pendiente: se intentará enviar la próxima evaluación guardada.</p>
     </section>
 
@@ -406,14 +425,7 @@
     </div>
   </div>
 
-  <!-- MODAL DE CONFIGURACIÓN RÁPIDA (API KEY + CSV KOHA + ENLACE DE DESPLIEGUE) -->
-  <!-- 0. Nombre del Operador / Zona -->
-<div class="space-y-1.5">
-  <label class="text-[11px] font-bold text-slate-700 block">Operador / Colección asignada:</label>
-  <input id="inputOperadorModal" type="text" placeholder="Ej. Luz - Literatura / Erick - TI" 
-    class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-uvg/40">
-</div>
-  
+  <!-- MODAL DE CONFIGURACIÓN RÁPIDA (OPERADOR + API KEY + CSV KOHA + ENLACE DE DESPLIEGUE) -->
   <div id="modalApiKey" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4 z-50">
     <div class="liquid-panel bg-white/95 border border-white rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl">
       <div class="flex items-center justify-between">
@@ -423,9 +435,16 @@
         </div>
         <button onclick="cerrarModalKey()" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
       </div>
+
+      <!-- 0. Nombre del Operador / Zona -->
+      <div class="space-y-1.5">
+        <label class="text-[11px] font-bold text-slate-700 block">0. Operador / Colección asignada:</label>
+        <input id="inputOperadorModal" type="text" placeholder="Ej. Luz - Literatura / Erick - TI" 
+          class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-uvg/40">
+      </div>
       
       <!-- 1. Gemini API Key -->
-      <div class="space-y-1.5">
+      <div class="space-y-1.5 pt-2 border-t border-slate-200/70">
         <label class="text-[11px] font-bold text-slate-700 flex items-center justify-between">
           <span>1. Gemini API Key:</span>
           <button onclick="pegarApiKeyPortapapeles()" class="text-[10px] text-uvg hover:underline font-semibold">📋 Pegar</button>
@@ -500,9 +519,48 @@
     let versionCatalogo = 0;
     let importandoCatalogo = false;
     let ejemplarKohaSeleccionado = null;
+    let reescaneoConfirmado = false;
 
     function normalizarBarcode(valor) {
       return String(valor ?? '').trim().toLowerCase();
+    }
+
+    function verificarDuplicadoEscaneado(barcodeQuery) {
+      const alerta = document.getElementById('alertaDuplicado');
+      const btnEvaluar = document.getElementById('btnEvaluar');
+      const codigoLimpio = normalizarBarcode(barcodeQuery);
+
+      if (!codigoLimpio) {
+        alerta.classList.add('hidden');
+        btnEvaluar.disabled = false;
+        btnEvaluar.classList.remove('opacity-50', 'cursor-not-allowed');
+        return null;
+      }
+
+      const historial = obtenerHistorial();
+      const previo = historial.slice().reverse().find(h => normalizarBarcode(h.barcode) === codigoLimpio);
+
+      if (previo && !reescaneoConfirmado) {
+        document.getElementById('txtDetalleDuplicado').textContent = 
+          `Dictamen previo: ${previo.dictamen || previo.decision} (${previo.fecha}) — "${previo.titulo}"`;
+        alerta.classList.remove('hidden');
+        btnEvaluar.disabled = true;
+        btnEvaluar.classList.add('opacity-50', 'cursor-not-allowed');
+        return previo;
+      } else {
+        alerta.classList.add('hidden');
+        btnEvaluar.disabled = false;
+        btnEvaluar.classList.remove('opacity-50', 'cursor-not-allowed');
+        return null;
+      }
+    }
+
+    function confirmarReescaneo() {
+      reescaneoConfirmado = true;
+      document.getElementById('alertaDuplicado').classList.add('hidden');
+      const btnEvaluar = document.getElementById('btnEvaluar');
+      btnEvaluar.disabled = false;
+      btnEvaluar.classList.remove('opacity-50', 'cursor-not-allowed');
     }
 
     function instalarCatalogo(filas) {
@@ -581,6 +639,7 @@
 
     function programarBusquedaCatalogo() {
       clearTimeout(temporizadorBusqueda);
+      reescaneoConfirmado = false;
       ejemplarKohaSeleccionado = null;
       document.getElementById('fichaKoha').classList.add('hidden');
       temporizadorBusqueda = setTimeout(buscarEnCatalogo, 180);
@@ -892,6 +951,9 @@
       const query = (document.getElementById('inputBarcode').value || '').trim().toLowerCase();
       const ficha = document.getElementById('fichaKoha');
 
+      // Verificar siempre si este código ya fue evaluado antes en la sesión/historial
+      verificarDuplicadoEscaneado(query);
+
       if (!query || catalogoKoha.length === 0) {
         ficha.classList.add('hidden');
         ejemplarKohaSeleccionado = null;
@@ -924,6 +986,9 @@
         document.getElementById('kohaUltimoPrestamo').textContent = ejemplarKohaSeleccionado.datelastborrowed;
         document.getElementById('kohaAniosSinCircular').textContent = ejemplarKohaSeleccionado.anios_sin_prestamo;
         ficha.classList.remove('hidden');
+
+        // También verificar duplicado usando el barcode oficial hallado en Koha
+        verificarDuplicadoEscaneado(ejemplarKohaSeleccionado.barcode);
       } else {
         ficha.classList.add('hidden');
         ejemplarKohaSeleccionado = null;
@@ -931,6 +996,7 @@
     }
 
     function limpiarBarcode() {
+      reescaneoConfirmado = false;
       document.getElementById('inputBarcode').value = '';
       buscarEnCatalogo();
     }
@@ -1014,8 +1080,14 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
     async function evaluarLibro() {
       buscarEnCatalogo();
       const kohaEvaluado = ejemplarKohaSeleccionado ? { ...ejemplarKohaSeleccionado } : null;
-      const apiKey = (localStorage.getItem('GEMINI_API_KEY') || '').trim();
+      const barcodeActual = kohaEvaluado ? kohaEvaluado.barcode : document.getElementById('inputBarcode').value.trim();
 
+      // Bloquear si ya fue evaluado y el usuario no ha presionado "Confirmar y escanear de nuevo"
+      if (verificarDuplicadoEscaneado(barcodeActual)) {
+        return;
+      }
+
+      const apiKey = (localStorage.getItem('GEMINI_API_KEY') || '').trim();
       if (!apiKey) return abrirModalKey();
       
       let operador = (localStorage.getItem('NOMBRE_OPERADOR') || '').trim();
@@ -1023,6 +1095,7 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
         operador = prompt("Ingresa tu nombre o colección asignada (ej. Luz - Literatura):", "");
         if (!operador || !operador.trim()) return;
         localStorage.setItem('NOMBRE_OPERADOR', operador.trim());
+        actualizarBadgeOperador();
       }
 
       const fotosValidas = fotosArray.filter(f => Boolean(f.base64));
@@ -1184,11 +1257,16 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
 
     function limpiarFormulario() {
       clearTimeout(temporizadorBusqueda);
+      reescaneoConfirmado = false;
       fotosArray.forEach(f => f.base64 = null);
       renderizarGaleriaFotos();
 
       document.getElementById('inputBarcode').value = '';
       document.getElementById('fichaKoha').classList.add('hidden');
+      document.getElementById('alertaDuplicado').classList.add('hidden');
+      const btnEvaluar = document.getElementById('btnEvaluar');
+      btnEvaluar.disabled = false;
+      btnEvaluar.classList.remove('opacity-50', 'cursor-not-allowed');
       ejemplarKohaSeleccionado = null;
       document.getElementById('cardResultado').classList.add('hidden');
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1261,7 +1339,12 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
     }
 
     function guardarEnHistorial(item) {
-      const historial = obtenerHistorial();
+      let historial = obtenerHistorial();
+      const code = normalizarBarcode(item.barcode);
+      // Si se confirmó re-escanear un código existente, reemplaza el registro previo para no duplicar filas
+      if (code && code !== 'n/a') {
+        historial = historial.filter(h => normalizarBarcode(h.barcode) !== code);
+      }
       historial.push(item);
       localStorage.setItem('HISTORIAL_EXPURGO', JSON.stringify(historial));
       renderizarTabla();
@@ -1335,16 +1418,29 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
     }
 
     // ========================================================
-    // GESTIÓN DE API KEY & DESPLIEGUE RÁPIDO POR URL
+    // GESTIÓN DE API KEY, OPERADOR & DESPLIEGUE RÁPIDO POR URL
     // ========================================================
+    function actualizarBadgeOperador() {
+      const op = (localStorage.getItem('NOMBRE_OPERADOR') || '').trim();
+      const badge = document.getElementById('badgeOperadorActivo');
+      if (badge) {
+        badge.textContent = op ? `Operador: ${op}` : 'Operador: Sin asignar (clic para editar)';
+      }
+    }
+
     function verificarParametrosURL() {
       const params = new URLSearchParams(window.location.search);
       const keyParam = params.get('api_key');
       const csvParam = params.get('csv_url');
+      const opParam = params.get('operador');
       let limpiarUrl = false;
 
       if (keyParam && keyParam.trim().length > 10) {
         localStorage.setItem('GEMINI_API_KEY', keyParam.trim());
+        limpiarUrl = true;
+      }
+      if (opParam && opParam.trim()) {
+        localStorage.setItem('NOMBRE_OPERADOR', opParam.trim());
         limpiarUrl = true;
       }
       if (csvParam) {
@@ -1359,6 +1455,7 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
     function verificarApiKey() {
       const key = (localStorage.getItem('GEMINI_API_KEY') || '').trim();
       const dot = document.getElementById('keyStatusDot');
+      actualizarBadgeOperador();
       if (key.length > 10) {
         dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm";
       } else {
@@ -1367,24 +1464,28 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
       }
     }
 
-   function abrirModalKey() {
-  document.getElementById('inputApiKeyModal').value = localStorage.getItem('GEMINI_API_KEY') || '';
-  const inputOp = document.getElementById('inputOperadorModal');
-  if (inputOp) inputOp.value = localStorage.getItem('NOMBRE_OPERADOR') || '';
-  document.getElementById('modalApiKey').classList.remove('hidden');
-}
+    function abrirModalKey() {
+      document.getElementById('inputApiKeyModal').value = localStorage.getItem('GEMINI_API_KEY') || '';
+      const inputOp = document.getElementById('inputOperadorModal');
+      if (inputOp) inputOp.value = localStorage.getItem('NOMBRE_OPERADOR') || '';
+      document.getElementById('modalApiKey').classList.remove('hidden');
+    }
 
-function guardarApiKey() {
-  const val = document.getElementById('inputApiKeyModal').value.trim();
-  const op = (document.getElementById('inputOperadorModal')?.value || '').trim();
-  if (!val) return alert("Por favor ingresa una clave válida.");
-  
-  localStorage.setItem('GEMINI_API_KEY', val);
-  if (op) localStorage.setItem('NOMBRE_OPERADOR', op);
-  
-  cerrarModalKey();
-  verificarApiKey();
-}
+    function cerrarModalKey() {
+      document.getElementById('modalApiKey').classList.add('hidden');
+    }
+
+    function guardarApiKey() {
+      const val = document.getElementById('inputApiKeyModal').value.trim();
+      const op = (document.getElementById('inputOperadorModal')?.value || '').trim();
+      if (!val) return alert("Por favor ingresa una clave válida.");
+      
+      localStorage.setItem('GEMINI_API_KEY', val);
+      if (op) localStorage.setItem('NOMBRE_OPERADOR', op);
+      
+      cerrarModalKey();
+      verificarApiKey();
+    }
 
     async function pegarApiKeyPortapapeles() {
       try {
@@ -1400,6 +1501,8 @@ function guardarApiKey() {
       if (!key) return alert("Primero ingresa o guarda tu API Key.");
       const url = new URL(window.location.origin + window.location.pathname);
       url.searchParams.set('api_key', key);
+      const op = (document.getElementById('inputOperadorModal')?.value || localStorage.getItem('NOMBRE_OPERADOR') || '').trim();
+      if (op) url.searchParams.set('operador', op);
       const csvUrl = (document.getElementById('inputCsvUrlModal').value || '').trim();
       if (csvUrl) url.searchParams.set('csv_url', csvUrl);
 
