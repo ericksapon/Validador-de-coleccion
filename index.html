@@ -831,7 +831,7 @@
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const maxDim = 1280;
+          const maxDim = 960;
           let w = img.width;
           let h = img.height;
           if (w > h && w > maxDim) {
@@ -852,7 +852,7 @@
     }
 
     function guardarImagenProcesada(canvas, id) {
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.70);
       const b64 = dataUrl.split(',')[1];
       const slot = fotosArray.find(f => f.id === id);
       if (slot) {
@@ -1131,9 +1131,10 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
 
       const modelos = [
         "gemini-2.5-flash-lite",
+        "gemini-2.5-flash",
         "gemini-3.5-flash-lite",
-        "gemini-3.8-flash",
-        "gemini-3.7-flash"
+        "gemini-3.7-flash",
+        "gemini-3.8-flash"
       ];
 
       let exito = false;
@@ -1142,14 +1143,24 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
       for (const mod of modelos) {
         loaderMsg.textContent = `Analizando evidencias con ${mod}...`;
 
+for (const mod of modelos) {
+        loaderMsg.textContent = `Analizando evidencias con ${mod}...`;
+
         for (let intento = 1; intento <= 2; intento++) {
+          const controlador = new AbortController();
+          const timeoutId = setTimeout(() => controlador.abort(), 10000); // 10s límite para red móvil/Wi-Fi
+
           try {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${mod}:generateContent?key=${encodeURIComponent(apiKey)}`;
+            
             const res = await fetch(url, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload)
+              body: JSON.stringify(payload),
+              signal: controlador.signal
             });
+
+            clearTimeout(timeoutId);
 
             if (res.status === 503) {
               ultimoError = `Servidores en alta demanda (503) en ${mod}.`;
@@ -1191,18 +1202,24 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
             exito = true;
             break;
           } catch (err) {
-            ultimoError = err.message;
-            break;
+            clearTimeout(timeoutId);
+            
+            if (err.name === 'AbortError') {
+              ultimoError = `Tiempo de espera agotado (>10s) en ${mod}.`;
+            } else {
+              ultimoError = err.message;
+            }
+            break; // Salta al siguiente modelo de la lista
           }
         }
         if (exito) break;
       }
 
-      if (!exito) alert("Fallo en la evaluación: " + ultimoError);
+    if (!exito) alert("Fallo en la evaluación: " + ultimoError);
 
       loader.classList.add('hidden');
       document.getElementById('btnEvaluar').disabled = false;
-    }
+    } // <--- AQUÍ SE CIERRA evaluarLibro()
 
     function renderizarResultado(res, koha = ejemplarKohaSeleccionado) {
       const badge = document.getElementById('badgeDecision');
