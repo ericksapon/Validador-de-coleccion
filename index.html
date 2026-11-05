@@ -771,7 +771,7 @@
     }
 
     // ========================================================
-    // CÁMARA & COMPRESIÓN CANVAS A 1280PX JPG 0.85
+    // CÁMARA & COMPRESIÓN CANVAS A 960PX JPG 0.70 (ALTA VELOCIDAD)
     // ========================================================
     async function iniciarCamara(id) {
       slotActualId = id;
@@ -794,7 +794,7 @@
     function capturarSnapshot() {
       const video = document.getElementById('videoFeed');
       const canvas = document.createElement('canvas');
-      const maxDim = 1280;
+      const maxDim = 960;
       let w = video.videoWidth || 1280;
       let h = video.videoHeight || 720;
 
@@ -951,7 +951,6 @@
       const query = (document.getElementById('inputBarcode').value || '').trim().toLowerCase();
       const ficha = document.getElementById('fichaKoha');
 
-      // Verificar siempre si este código ya fue evaluado antes en la sesión/historial
       verificarDuplicadoEscaneado(query);
 
       if (!query || catalogoKoha.length === 0) {
@@ -987,7 +986,6 @@
         document.getElementById('kohaAniosSinCircular').textContent = ejemplarKohaSeleccionado.anios_sin_prestamo;
         ficha.classList.remove('hidden');
 
-        // También verificar duplicado usando el barcode oficial hallado en Koha
         verificarDuplicadoEscaneado(ejemplarKohaSeleccionado.barcode);
       } else {
         ficha.classList.add('hidden');
@@ -1082,7 +1080,6 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
       const kohaEvaluado = ejemplarKohaSeleccionado ? { ...ejemplarKohaSeleccionado } : null;
       const barcodeActual = kohaEvaluado ? kohaEvaluado.barcode : document.getElementById('inputBarcode').value.trim();
 
-      // Bloquear si ya fue evaluado y el usuario no ha presionado "Confirmar y escanear de nuevo"
       if (verificarDuplicadoEscaneado(barcodeActual)) {
         return;
       }
@@ -1143,12 +1140,9 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
       for (const mod of modelos) {
         loaderMsg.textContent = `Analizando evidencias con ${mod}...`;
 
-for (const mod of modelos) {
-        loaderMsg.textContent = `Analizando evidencias con ${mod}...`;
-
         for (let intento = 1; intento <= 2; intento++) {
           const controlador = new AbortController();
-          const timeoutId = setTimeout(() => controlador.abort(), 10000); // 10s límite para red móvil/Wi-Fi
+          const timeoutId = setTimeout(() => controlador.abort(), 10000);
 
           try {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${mod}:generateContent?key=${encodeURIComponent(apiKey)}`;
@@ -1209,17 +1203,17 @@ for (const mod of modelos) {
             } else {
               ultimoError = err.message;
             }
-            break; // Salta al siguiente modelo de la lista
+            break;
           }
         }
         if (exito) break;
       }
 
-    if (!exito) alert("Fallo en la evaluación: " + ultimoError);
+      if (!exito) alert("Fallo en la evaluación: " + ultimoError);
 
       loader.classList.add('hidden');
       document.getElementById('btnEvaluar').disabled = false;
-    } // <--- AQUÍ SE CIERRA evaluarLibro()
+    }
 
     function renderizarResultado(res, koha = ejemplarKohaSeleccionado) {
       const badge = document.getElementById('badgeDecision');
@@ -1358,7 +1352,6 @@ for (const mod of modelos) {
     function guardarEnHistorial(item) {
       let historial = obtenerHistorial();
       const code = normalizarBarcode(item.barcode);
-      // Si se confirmó re-escanear un código existente, reemplaza el registro previo para no duplicar filas
       if (code && code !== 'n/a') {
         historial = historial.filter(h => normalizarBarcode(h.barcode) !== code);
       }
