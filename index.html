@@ -1127,9 +1127,8 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
       };
 
 const modelos = [
-  "gemini-3.5-flash-lite", // 500 consultas al día (uso principal)
- 
-];
+        "gemini-3.5-flash-lite"
+      ];
 
       let exito = false;
       let ultimoError = "";
@@ -1138,34 +1137,26 @@ const modelos = [
         loaderMsg.textContent = `Analizando evidencias con ${mod}...`;
 
         for (let intento = 1; intento <= 2; intento++) {
-          const controlador = new AbortController();
-          const timeoutId = setTimeout(() => controlador.abort(), 10000);
-
           try {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${mod}:generateContent?key=${encodeURIComponent(apiKey)}`;
             
-  
+            // fetch directo sin AbortController ni límite de segundos
             const res = await fetch(url, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
-              signal: controlador.signal
+              body: JSON.stringify(payload)
             });
 
-            clearTimeout(timeoutId);
-
-  
             if (res.status === 503) {
               ultimoError = `Servidores en alta demanda (503) en ${mod}.`;
               await esperar(1500 * intento);
               continue;
             }
 
-            // Si el modelo está deprecado (400), no existe (404) o agotó cuota (429)
             if (res.status === 429 || res.status === 404 || res.status === 400) {
               const errData = await res.json().catch(() => ({}));
               ultimoError = errData.error?.message || `HTTP ${res.status} en ${mod}`;
-              break; // Abandona este modelo y salta al siguiente de la lista
+              break;
             }
 
             if (!res.ok) {
@@ -1177,7 +1168,6 @@ const modelos = [
             const result = JSON.parse(data.candidates[0].content.parts[0].text);
 
             renderizarResultado(result, kohaEvaluado);
-         
 
             guardarEnHistorial({
               barcode: kohaEvaluado ? kohaEvaluado.barcode : (document.getElementById('inputBarcode').value.trim() || 'N/A'),
@@ -1203,24 +1193,12 @@ const modelos = [
             exito = true;
             break;
           } catch (err) {
-            clearTimeout(timeoutId);
-            
-            if (err.name === 'AbortError') {
-              ultimoError = `Tiempo de espera agotado (>10s) en ${mod}.`;
-            } else {
-              ultimoError = err.message;
-            }
+            ultimoError = err.message;
             break;
           }
         }
         if (exito) break;
       }
-
-      if (!exito) alert("Fallo en la evaluación: " + ultimoError);
-
-      loader.classList.add('hidden');
-      document.getElementById('btnEvaluar').disabled = false;
-    }
 
     function renderizarResultado(res, koha = ejemplarKohaSeleccionado) {
       const badge = document.getElementById('badgeDecision');
