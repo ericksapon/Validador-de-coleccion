@@ -294,7 +294,7 @@
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
           </svg>
-          <span id="loaderMsg">Inspeccionando ISBN, edición, daños físicos y datos de Koha...</span>
+          <span id="loaderMsg">Inspeccionando ISBN, edición, daños físicos y datos de Koha con gemini-3.5-flash-lite...</span>
         </div>
       </div>
     </div>
@@ -1126,7 +1126,8 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
         }
       };
 
-const modelos = [
+      // Único modelo con cuota alta gratuita activa (500 RPD / 15 RPM)
+      const modelos = [
         "gemini-3.5-flash-lite"
       ];
 
@@ -1140,7 +1141,7 @@ const modelos = [
           try {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${mod}:generateContent?key=${encodeURIComponent(apiKey)}`;
             
-            // fetch directo sin AbortController ni límite de segundos
+            // fetch directo sin AbortController ni límite artificial de tiempo
             const res = await fetch(url, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -1199,6 +1200,12 @@ const modelos = [
         }
         if (exito) break;
       }
+
+      if (!exito) alert("Fallo en la evaluación: " + ultimoError);
+
+      loader.classList.add('hidden');
+      document.getElementById('btnEvaluar').disabled = false;
+    }
 
     function renderizarResultado(res, koha = ejemplarKohaSeleccionado) {
       const badge = document.getElementById('badgeDecision');
