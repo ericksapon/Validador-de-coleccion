@@ -3,35 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Evaluación y Expurgo de Colecciones | UVG</title>
+  <title>Auditoría y Descarte Bibliotecario | UVG</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
     input:focus, select:focus, textarea:focus { outline: none; border-color: #047857; box-shadow: 0 0 0 2px rgba(4, 120, 87, 0.2); }
+    .modal-backdrop { background-color: rgba(15, 23, 42, 0.65); backdrop-filter: blur(4px); }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-800 font-sans min-h-screen antialiased flex flex-col justify-between">
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col justify-between antialiased">
 
   <!-- ENCABEZADO -->
   <header class="bg-emerald-800 text-white shadow-md sticky top-0 z-40">
-    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
       <div class="flex items-center space-x-3">
-        <div class="w-9 h-9 bg-emerald-900 rounded-xl flex items-center justify-center font-bold text-lg border border-emerald-600/50 shadow-inner">
+        <div class="w-10 h-10 bg-emerald-900 rounded-xl flex items-center justify-center font-bold text-xl border border-emerald-600/50 shadow-inner">
           📚
         </div>
         <div>
-          <h1 class="text-sm md:text-base font-bold leading-tight tracking-wide">Auditoría y Descarte Bibliotecario</h1>
-          <p class="text-[10px] md:text-xs text-emerald-200">Departamento de Bibliotecas UVG • Método IOUPI (0-8 pts)</p>
+          <h1 class="text-sm md:text-base font-bold leading-tight">Auditoría y Descarte de Colecciones</h1>
+          <p class="text-[10px] md:text-xs text-emerald-200">Sistema Institucional UVG • Método IOUPI (0-8 pts)</p>
         </div>
       </div>
 
       <div class="flex items-center space-x-2">
-        <span id="badgeKoha" class="hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-900 text-emerald-100 border border-emerald-600/40">
-          Koha no cargado
+        <span id="badgeKohaDb" class="hidden md:inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-900 text-emerald-100 border border-emerald-600/50">
+          Koha: 0 registros (IndexedDB)
         </span>
-        <button onclick="abrirModalConfig()" class="p-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 transition-colors text-xs font-semibold flex items-center space-x-1 shadow-sm">
+        <button onclick="abrirModalAjustes()" class="p-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 transition-colors text-xs font-semibold flex items-center space-x-1 shadow-sm">
           <span>⚙️</span>
           <span class="hidden sm:inline">Ajustes</span>
         </button>
@@ -40,145 +41,177 @@
   </header>
 
   <!-- CONTENIDO PRINCIPAL -->
-  <main class="max-w-6xl mx-auto p-3 md:p-6 w-full space-y-4">
+  <main class="max-w-7xl mx-auto p-3 md:p-6 w-full space-y-4 flex-grow">
 
-    <!-- BARRA DE ACCESO RÁPIDO Y CARGA KOHA -->
+    <!-- SECCIÓN 1: CONTROLES DE SESIÓN, OPERADOR Y CATÁLOGO KOHA -->
     <section class="grid grid-cols-1 md:grid-cols-3 gap-3">
       <div class="glass-card p-3.5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
         <div class="truncate mr-2">
-          <span class="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Operador Activo</span>
-          <span id="txtOperadorActivo" class="text-xs md:text-sm font-bold text-slate-700 truncate block">Brigada Estantería</span>
+          <span class="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Operador / Brigada</span>
+          <span id="lblOperador" class="text-xs md:text-sm font-bold text-slate-700 truncate block">Brigada Estantería</span>
         </div>
-        <span class="text-xs px-2 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg font-bold">iPad / Web</span>
+        <span class="text-[11px] px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg font-bold shrink-0">Estación UVG</span>
       </div>
 
       <div class="glass-card p-3.5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between md:col-span-2">
         <div class="truncate mr-3">
-          <span class="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Catálogo Koha (CSV)</span>
-          <span id="txtEstadoCatalogo" class="text-xs text-slate-600 truncate block">Sin índice local cargado</span>
+          <span class="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Catálogo Koha (Persistencia IndexedDB)</span>
+          <span id="lblEstadoCatalogo" class="text-xs text-slate-600 truncate block">Comprobando base local...</span>
         </div>
-        <label class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold py-2 px-3.5 rounded-xl transition-all shadow-sm shrink-0 flex items-center space-x-1.5">
-          <span>📥 Cargar Catálogo</span>
-          <input type="file" id="inputCsvKoha" accept=".csv" class="hidden" onchange="procesarCsvKoha(event)">
-        </label>
+        <div class="flex items-center space-x-2 shrink-0">
+          <button onclick="limpiarCatalogoIndexedDB()" class="text-slate-400 hover:text-red-600 p-2 text-xs font-bold transition-colors" title="Vaciar índice local">
+            🗑️
+          </button>
+          <label class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold py-2 px-3.5 rounded-xl transition-all shadow-sm flex items-center space-x-1.5">
+            <span>📥 Cargar CSV</span>
+            <input type="file" id="inputCsvKoha" accept=".csv" class="hidden" onchange="procesarArchivoCsvKoha(event)">
+          </label>
+        </div>
       </div>
     </section>
 
-    <!-- FORMULARIO DE EVALUACIÓN Y FOTOGRAFÍAS -->
+    <!-- SECCIÓN 2: FORMULARIO DE EVALUACIÓN Y FOTOGRAFÍAS -->
     <section class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-      
-      <!-- COLUMNA IZQUIERDA: ENTRADA Y CÁMARA (5 COLS) -->
+
+      <!-- COLUMNA IZQUIERDA: CÓDIGO, COTEJO Y EVIDENCIAS (5 COLS) -->
       <div class="lg:col-span-5 space-y-3">
         <div class="glass-card p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+          
           <div>
-            <label class="text-[11px] font-bold text-slate-600 uppercase tracking-wide block mb-1">Código de Barras (Ejemplar):</label>
+            <label class="text-[11px] font-bold text-slate-600 uppercase tracking-wide block mb-1">Código de Barras del Ejemplar:</label>
             <div class="flex space-x-2">
               <input type="text" id="inputBarcode" placeholder="Ej. 104721" autofocus
                 class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-mono font-bold text-slate-800 placeholder-slate-400"
-                onkeydown="if(event.key === 'Enter') buscarEnKohaLocal()">
-              <button onclick="buscarEnKohaLocal()" class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-3 py-2 rounded-xl text-xs transition-colors shrink-0">
-                🔍 Cotejar
+                oninput="controlCambioCodigo()"
+                onkeydown="if(event.key === 'Enter') cotejarKoha()">
+              <button onclick="cotejarKoha()" class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-3 py-2 rounded-xl text-xs transition-colors shrink-0 flex items-center space-x-1">
+                <span>🔍 Cotejar</span>
               </button>
             </div>
           </div>
 
-          <!-- RESUMEN ENCONTRADO EN KOHA -->
+          <!-- FICHA TÉCNICA KOHA VINCULADA -->
           <div id="boxFichaKoha" class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-1 text-slate-600">
-            <div class="font-bold text-slate-700 flex justify-between">
-              <span>Registro en Koha:</span>
-              <span id="kohaBadgeStatus" class="text-[10px] font-bold text-slate-400">NO COTEJADO</span>
+            <div class="font-bold text-slate-700 flex justify-between items-center">
+              <span>Registro en Catálogo:</span>
+              <span id="kohaBadgeStatus" class="text-[10px] font-bold text-slate-400">PENDIENTE DE COTEJO</span>
             </div>
-            <p id="kohaTitulo" class="truncate font-semibold text-slate-800">Título: Pendiente</p>
+            <p id="kohaTitulo" class="truncate font-semibold text-slate-800">Título: -</p>
             <div class="flex justify-between text-[11px] text-slate-500">
               <span id="kohaIsbn">ISBN: -</span>
-              <span id="kohaPrestamos">Préstamos: 0</span>
+              <span id="kohaPrestamos">Préstamos: -</span>
             </div>
-            <p id="kohaColeccion" class="text-[10px] text-amber-700 font-bold hidden">⚠️ Colección con protección patrimonial</p>
+            <div class="flex justify-between text-[11px] text-slate-500">
+              <span id="kohaAutor">Autor: -</span>
+              <span id="kohaAnio">Año: -</span>
+            </div>
+            <p id="kohaAlertaColeccion" class="text-[10px] text-amber-700 font-bold hidden pt-1 border-t border-amber-200/60 mt-1">
+              ⚠️ Fondo Protegido / Colección Especial (H=True)[cite: 3]
+            </p>
           </div>
 
-          <!-- CAPTURA FOTOGRÁFICA (3 EVIDENCIAS) -->
+          <!-- EVIDENCIAS FOTOGRÁFICAS (3 ESPACIOS CON ZOOM Y BORRADO) -->
           <div class="space-y-2 pt-1">
-            <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wide block">Evidencias Fotográficas:</span>
+            <div class="flex justify-between items-center">
+              <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wide">Fotografías del Ejemplar:</span>
+              <span class="text-[10px] text-amber-600 font-semibold">(Mínimo 2 requeridas)</span>
+            </div>
+
             <div class="grid grid-cols-3 gap-2">
-              <label class="border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-xl p-2 flex flex-col items-center justify-center text-center cursor-pointer transition-colors aspect-square relative bg-slate-50">
-                <input type="file" accept="image/*" capture="environment" class="hidden" onchange="procesarFoto(event, 'previewPortada', 0)">
-                <img id="previewPortada" class="absolute inset-0 w-full h-full object-cover rounded-xl hidden">
-                <span class="text-lg">📖</span>
-                <span class="text-[10px] font-semibold text-slate-500 mt-1">Portada</span>
-              </label>
+              <!-- Espacio 1: Portada -->
+              <div class="relative border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-xl aspect-square flex flex-col items-center justify-center text-center p-1 bg-slate-50 overflow-hidden group">
+                <input type="file" accept="image/*" capture="environment" id="fileFoto0" class="hidden" onchange="cargarFoto(event, 0)">
+                <img id="imgFoto0" class="absolute inset-0 w-full h-full object-cover hidden cursor-pointer" onclick="verFotoZoom(0)">
+                <div id="phFoto0" onclick="document.getElementById('fileFoto0').click()" class="cursor-pointer flex flex-col items-center">
+                  <span class="text-xl">📖</span>
+                  <span class="text-[10px] font-semibold text-slate-500 mt-1">Portada</span>
+                </div>
+                <button id="btnDelFoto0" onclick="borrarFoto(0)" class="absolute top-1 right-1 bg-slate-900/70 hover:bg-red-600 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center hidden z-10">&times;</button>
+              </div>
 
-              <label class="border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-xl p-2 flex flex-col items-center justify-center text-center cursor-pointer transition-colors aspect-square relative bg-slate-50">
-                <input type="file" accept="image/*" capture="environment" class="hidden" onchange="procesarFoto(event, 'previewLegal', 1)">
-                <img id="previewLegal" class="absolute inset-0 w-full h-full object-cover rounded-xl hidden">
-                <span class="text-lg">⚖️</span>
-                <span class="text-[10px] font-semibold text-slate-500 mt-1">Hoja Legal</span>
-              </label>
+              <!-- Espacio 2: Hoja Legal -->
+              <div class="relative border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-xl aspect-square flex flex-col items-center justify-center text-center p-1 bg-slate-50 overflow-hidden group">
+                <input type="file" accept="image/*" capture="environment" id="fileFoto1" class="hidden" onchange="cargarFoto(event, 1)">
+                <img id="imgFoto1" class="absolute inset-0 w-full h-full object-cover hidden cursor-pointer" onclick="verFotoZoom(1)">
+                <div id="phFoto1" onclick="document.getElementById('fileFoto1').click()" class="cursor-pointer flex flex-col items-center">
+                  <span class="text-xl">⚖️</span>
+                  <span class="text-[10px] font-semibold text-slate-500 mt-1">Hoja Legal</span>
+                </div>
+                <button id="btnDelFoto1" onclick="borrarFoto(1)" class="absolute top-1 right-1 bg-slate-900/70 hover:bg-red-600 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center hidden z-10">&times;</button>
+              </div>
 
-              <label class="border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-xl p-2 flex flex-col items-center justify-center text-center cursor-pointer transition-colors aspect-square relative bg-slate-50">
-                <input type="file" accept="image/*" capture="environment" class="hidden" onchange="procesarFoto(event, 'previewDano', 2)">
-                <img id="previewDano" class="absolute inset-0 w-full h-full object-cover rounded-xl hidden">
-                <span class="text-lg">🔍</span>
-                <span class="text-[10px] font-semibold text-slate-500 mt-1">Detalle / Daño</span>
-              </label>
+              <!-- Espacio 3: Daño / Estado -->
+              <div class="relative border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-xl aspect-square flex flex-col items-center justify-center text-center p-1 bg-slate-50 overflow-hidden group">
+                <input type="file" accept="image/*" capture="environment" id="fileFoto2" class="hidden" onchange="cargarFoto(event, 2)">
+                <img id="imgFoto2" class="absolute inset-0 w-full h-full object-cover hidden cursor-pointer" onclick="verFotoZoom(2)">
+                <div id="phFoto2" onclick="document.getElementById('fileFoto2').click()" class="cursor-pointer flex flex-col items-center">
+                  <span class="text-xl">🔍</span>
+                  <span class="text-[10px] font-semibold text-slate-500 mt-1">Daño / Detalle</span>
+                </div>
+                <button id="btnDelFoto2" onclick="borrarFoto(2)" class="absolute top-1 right-1 bg-slate-900/70 hover:bg-red-600 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center hidden z-10">&times;</button>
+              </div>
             </div>
           </div>
 
-          <!-- BOTÓN EVALUAR -->
-          <button id="btnEjecutarEvaluacion" onclick="evaluarConGemini()"
+          <!-- BOTÓN PRINCIPAL DE EVALUACIÓN -->
+          <button id="btnEvaluar" onclick="iniciarEvaluacionAuditoria()"
             class="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-3 px-4 rounded-xl text-sm transition-all shadow-md flex items-center justify-center space-x-2">
             <span>⚡ Evaluar con Gemini IA</span>
           </button>
         </div>
       </div>
 
-      <!-- COLUMNA DERECHA: DICTAMEN OFICIAL Y RÚBRICA IOUPI (7 COLS) -->
+      <!-- COLUMNA DERECHA: DICTAMEN OFICIAL, IOUPI Y PERSISTENCIA (7 COLS) -->
       <div class="lg:col-span-7 space-y-3">
         <div class="glass-card p-4 md:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
           <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h2 class="text-sm font-bold text-slate-700 tracking-wide uppercase">Dictamen Oficial UVG</h2>
-            <span id="badgeResultadoStatus" class="px-2.5 py-1 rounded-full text-xs font-extrabold bg-slate-100 text-slate-600">
+            <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wide">Dictamen Institucional UVG</h2>
+            <span id="badgeDictamenStatus" class="px-2.5 py-1 rounded-full text-xs font-extrabold bg-slate-100 text-slate-600">
               EN ESPERA
             </span>
           </div>
 
-          <!-- TARJETA DEL DICTAMEN -->
+          <!-- PANEL DE CONTROL DEL DICTAMEN -->
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
             <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
               <span class="text-[10px] text-slate-400 font-bold block uppercase">Puntaje IOUPI</span>
-              <span id="valPuntajeIoupi" class="text-base font-extrabold text-slate-700">- / 8</span>
+              <span id="resPuntajeIoupi" class="text-base font-extrabold text-slate-700">- / 8</span>
             </div>
             <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
               <span class="text-[10px] text-slate-400 font-bold block uppercase">Valor Histórico</span>
-              <span id="valValorHistorico" class="text-base font-extrabold text-slate-700">NO</span>
+              <span id="resValorHistorico" class="text-base font-extrabold text-slate-700">NO</span>
             </div>
             <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
               <span class="text-[10px] text-slate-400 font-bold block uppercase">Veto Biológico</span>
-              <span id="valVetoBiologico" class="text-base font-extrabold text-slate-700">NO</span>
+              <span id="resVetoBiologico" class="text-base font-extrabold text-slate-700">NO</span>
             </div>
             <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
               <span class="text-[10px] text-slate-400 font-bold block uppercase">Decisión</span>
-              <span id="valDecisionFinal" class="text-base font-extrabold text-slate-700">-</span>
+              <span id="resDecision" class="text-base font-extrabold text-slate-700">-</span>
             </div>
           </div>
 
-          <!-- DESGLOSE IOUPE / OUPE -->
+          <!-- DESGLOSE DE RÚBRICA IOUPI -->
           <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs space-y-2">
-            <span class="text-[11px] font-bold text-slate-700 uppercase tracking-wide block">Desglose de Rúbrica (IOUPI):</span>
+            <div class="flex justify-between items-center">
+              <span class="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Desglose Rúbrica IOUPI (Mansilla & Verde, 2015)[cite: 3]:</span>
+              <span class="text-[10px] text-slate-500 font-medium">Umbral descarte: &ge; 4 pts[cite: 3]</span>
+            </div>
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
               <div class="bg-white p-2 rounded-lg border border-slate-200">
-                <span class="font-bold text-slate-600 block">O (Obsolescencia):</span>
+                <span class="font-bold text-slate-600 block">O (Obsolescencia)[cite: 3]:</span>
                 <span id="scoreO" class="font-extrabold text-slate-800">0 pts</span>
               </div>
               <div class="bg-white p-2 rounded-lg border border-slate-200">
-                <span class="font-bold text-slate-600 block">U (Sin Uso/Dupl):</span>
+                <span class="font-bold text-slate-600 block">U (Uso / Dupl)[cite: 3]:</span>
                 <span id="scoreU" class="font-extrabold text-slate-800">0 pts</span>
               </div>
               <div class="bg-white p-2 rounded-lg border border-slate-200">
-                <span class="font-bold text-slate-600 block">P (No Pert./Calidad):</span>
+                <span class="font-bold text-slate-600 block">P (Pert. / Calidad)[cite: 3]:</span>
                 <span id="scoreP" class="font-extrabold text-slate-800">0 pts</span>
               </div>
               <div class="bg-white p-2 rounded-lg border border-slate-200">
-                <span class="font-bold text-slate-600 block">E (Físico/Espacio):</span>
+                <span class="font-bold text-slate-600 block">E (Estado / Espacio)[cite: 3]:</span>
                 <span id="scoreE" class="font-extrabold text-slate-800">0 pts</span>
               </div>
             </div>
@@ -186,46 +219,55 @@
 
           <!-- FUNDAMENTO TÉCNICO -->
           <div class="space-y-1 text-xs">
-            <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wide block">Fundamentación de la Evaluación:</span>
-            <div id="txtFundamento" class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 min-h-[70px] leading-relaxed">
-              El análisis del ejemplar aparecerá aquí tras completar la inferencia.
+            <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wide block">Fundamentación Bibliotecaria:</span>
+            <div id="resFundamento" class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 min-h-[75px] leading-relaxed">
+              El dictamen y el cotejo del ejemplar aparecerán aquí una vez ejecutada la auditoría.
             </div>
           </div>
 
           <!-- ESTADO DE PERSISTENCIA M365 -->
-          <div id="barEstadoSync" class="p-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs flex items-center justify-between">
-            <span id="txtSyncMsg" class="font-medium text-slate-600">Esperando evaluación...</span>
-            <span id="syncIndicator" class="w-2.5 h-2.5 rounded-full bg-slate-300"></span>
+          <div id="barSyncM365" class="p-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs flex items-center justify-between">
+            <span id="txtSyncMsg" class="font-medium text-slate-600">En espera de evaluación...</span>
+            <span id="syncDot" class="w-2.5 h-2.5 rounded-full bg-slate-300"></span>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- HISTORIAL DE LA SESIÓN Y EXPORTACIÓN -->
+    <!-- SECCIÓN 3: HISTORIAL DE EVALUACIONES (PERSISTIDO EN LOCALSTORAGE) -->
     <section class="glass-card p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
       <div class="flex items-center justify-between">
-        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wide">Evaluaciones de la Sesión (<span id="cantHistorial">0</span>)</h3>
-        <button onclick="exportarExcelSesion()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs transition-colors flex items-center space-x-1">
-          <span>📊 Exportar Excel Local</span>
-        </button>
+        <div class="flex items-center space-x-2">
+          <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wide">Historial Registrado (<span id="cantHistorial">0</span>)</h3>
+          <span class="text-[10px] text-slate-400 font-medium hidden sm:inline">• Persiste en memoria local</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button onclick="borrarHistorialLocal()" class="text-slate-400 hover:text-red-600 text-xs font-bold px-2 py-1 transition-colors">
+            Limpiar Historial
+          </button>
+          <button onclick="exportarExcelSesion()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs transition-colors flex items-center space-x-1 shadow-sm">
+            <span>📊 Descargar Excel</span>
+          </button>
+        </div>
       </div>
 
-      <div class="overflow-x-auto max-h-56 overflow-y-auto rounded-xl border border-slate-200">
+      <div class="overflow-x-auto max-h-64 overflow-y-auto rounded-xl border border-slate-200">
         <table class="w-full text-left text-xs text-slate-700">
           <thead class="bg-slate-100 uppercase text-[10px] text-slate-500 font-bold sticky top-0">
             <tr>
               <th class="p-2.5">Barcode</th>
               <th class="p-2.5">Título</th>
               <th class="p-2.5">Dictamen</th>
-              <th class="p-2.5">IOUPI</th>
-              <th class="p-2.5">Histórico</th>
+              <th class="p-2.5">IOUPI[cite: 3]</th>
+              <th class="p-2.5">Histórico[cite: 3]</th>
               <th class="p-2.5">Decisión</th>
-              <th class="p-2.5">M365</th>
+              <th class="p-2.5">M365[cite: 1]</th>
+              <th class="p-2.5 text-right">Fecha</th>
             </tr>
           </thead>
           <tbody id="tblHistorialBody" class="divide-y divide-slate-200 font-mono text-[11px]">
             <tr>
-              <td colspan="7" class="p-4 text-center text-slate-400 font-sans">No hay evaluaciones registradas en esta sesión.</td>
+              <td colspan="8" class="p-4 text-center text-slate-400 font-sans">No hay registros almacenados.</td>
             </tr>
           </tbody>
         </table>
@@ -233,164 +275,283 @@
     </section>
   </main>
 
-  <!-- MODAL DE AJUSTES Y SEGURIDAD -->
-  <div id="modalConfig" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden">
+  <!-- MODAL DE VISUALIZACIÓN / ZOOM DE FOTOGRAFÍAS -->
+  <div id="modalZoom" class="fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-4 hidden" onclick="cerrarZoom()">
+    <div class="relative max-w-3xl max-h-[90vh] bg-black rounded-2xl overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
+      <img id="imgZoomPreview" class="max-w-full max-h-[85vh] object-contain mx-auto">
+      <button onclick="cerrarZoom()" class="absolute top-2 right-2 bg-slate-900/80 text-white w-8 h-8 rounded-full font-bold flex items-center justify-center hover:bg-slate-700">&times;</button>
+    </div>
+  </div>
+
+  <!-- MODAL DE AJUSTES Y CONFIGURACIÓN -->
+  <div id="modalAjustes" class="fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-3 hidden">
     <div class="bg-white rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl border border-slate-200">
       <div class="flex items-center justify-between border-b border-slate-100 pb-2">
         <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide">Configuración de Despliegue</h3>
-        <button onclick="cerrarModalConfig()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">&times;</button>
+        <button onclick="cerrarModalAjustes()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">&times;</button>
       </div>
 
       <div class="space-y-3 text-xs">
         <div>
-          <label class="font-bold text-slate-700 block mb-1">Nombre de Operador / Brigada:</label>
-          <input id="inputOperadorModal" type="text" placeholder="Ej. Brigada 1 - Central"
+          <label class="font-bold text-slate-700 block mb-1">Nombre del Operador / Brigada:</label>
+          <input id="cfgOperador" type="text" placeholder="Ej. Brigada 1 - Central"
             class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-sans">
         </div>
 
         <div>
           <label class="font-bold text-slate-700 block mb-1">Google Gemini API Key:</label>
-          <input id="inputApiKeyModal" type="password" placeholder="AIzaSy..."
+          <input id="cfgApiKey" type="password" placeholder="AIzaSy..."
             class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-mono text-xs">
-          <p class="text-[10px] text-slate-400 mt-1">Se almacena exclusivamente en el localStorage del iPad/navegador.</p>
+          <p class="text-[10px] text-slate-400 mt-1">Se conserva únicamente en el navegador (localStorage).</p>
         </div>
 
         <div>
           <label class="font-bold text-slate-700 block mb-1">Webhook Power Automate (M365):</label>
-          <input id="inputWebhookModal" type="password" placeholder="https://default...powerplatform.com:443/..."
+          <input id="cfgWebhook" type="password" placeholder="https://default...powerplatform.com:443/..."
             class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-mono text-xs">
-          <p class="text-[10px] text-slate-400 mt-1">URL completa con token sig protegida en memoria local.</p>
+          <p class="text-[10px] text-slate-400 mt-1">Endpoint con firma sig protegida localmente.</p>
         </div>
       </div>
 
       <div class="flex justify-end space-x-2 pt-2 border-t border-slate-100">
-        <button onclick="cerrarModalConfig()" class="px-3.5 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl">Cancelar</button>
-        <button onclick="guardarConfiguracion()" class="px-4 py-2 text-xs font-bold bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl shadow-sm">Guardar Ajustes</button>
+        <button onclick="cerrarModalAjustes()" class="px-3.5 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl">Cancelar</button>
+        <button onclick="guardarAjustes()" class="px-4 py-2 text-xs font-bold bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl shadow-sm">Guardar Ajustes</button>
       </div>
     </div>
   </div>
 
-  <!-- SCRIPT DE LÓGICA -->
+  <!-- SCRIPT DE CONTROL Y LÓGICA -->
   <script>
-    let catalogoKoha = new Map();
-    let imagenesBase64 = [null, null, null];
-    let historialSesion = [];
-    let libroActualKoha = null;
+    // -------------------------------------------------------------
+    // ESTADO GLOBAL DE LA APLICACIÓN
+    // -------------------------------------------------------------
+    let dbIndexada = null;
+    let fotosBase64 = [null, null, null];
+    let kohaEjemplarEnMemoria = null;
+    let kohaBarcodeEnMemoria = "";
+    let historialAuditorias = [];
 
-    // Inicialización y recuperación de parámetros
-    window.addEventListener('DOMContentLoaded', () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('api_key')) localStorage.setItem('GEMINI_API_KEY', urlParams.get('api_key').trim());
-      if (urlParams.get('webhook')) localStorage.setItem('M365_WEBHOOK_URL', urlParams.get('webhook').trim());
-      if (urlParams.get('operador')) localStorage.setItem('APP_OPERADOR', urlParams.get('operador').trim());
+    const DB_NAME = "AuditoriaKohaDB";
+    const DB_STORE = "ejemplares";
 
-      if (urlParams.has('api_key') || urlParams.has('webhook')) {
+    // -------------------------------------------------------------
+    // INICIALIZACIÓN E INDEXEDDB
+    // -------------------------------------------------------------
+    window.addEventListener('DOMContentLoaded', async () => {
+      // 1. Cargar parámetros desde URL si vienen inyectados
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('api_key')) localStorage.setItem('GEMINI_API_KEY', params.get('api_key').trim());
+      if (params.get('webhook')) localStorage.setItem('M365_WEBHOOK_URL', params.get('webhook').trim());
+      if (params.get('operador')) localStorage.setItem('APP_OPERADOR', params.get('operador').trim());
+
+      if (params.has('api_key') || params.has('webhook')) {
         window.history.replaceState({}, document.title, window.location.pathname);
       }
 
-      document.getElementById('txtOperadorActivo').innerText = localStorage.getItem('APP_OPERADOR') || 'Brigada Central';
+      document.getElementById('lblOperador').innerText = localStorage.getItem('APP_OPERADOR') || 'Brigada Central';
+
+      // 2. Abrir o crear base de datos IndexedDB para Koha
+      await inicializarIndexedDB();
+
+      // 3. Restaurar historial desde localStorage
+      cargarHistorialLocal();
     });
 
-    function abrirModalConfig() {
-      document.getElementById('inputOperadorModal').value = localStorage.getItem('APP_OPERADOR') || '';
-      document.getElementById('inputApiKeyModal').value = localStorage.getItem('GEMINI_API_KEY') || '';
-      document.getElementById('inputWebhookModal').value = localStorage.getItem('M365_WEBHOOK_URL') || '';
-      document.getElementById('modalConfig').classList.remove('hidden');
+    function inicializarIndexedDB() {
+      return new Promise((resolve) => {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(DB_STORE)) {
+            db.createObjectStore(DB_STORE, { keyPath: "barcode" });
+          }
+        };
+        req.onsuccess = (e) => {
+          dbIndexada = e.target.result;
+          contarRegistrosIndexedDB();
+          resolve();
+        };
+        req.onerror = (e) => {
+          console.error("Error al abrir IndexedDB:", e);
+          document.getElementById('lblEstadoCatalogo').innerText = "Error en IndexedDB";
+          resolve();
+        };
+      });
     }
 
-    function cerrarModalConfig() {
-      document.getElementById('modalConfig').classList.add('hidden');
+    function contarRegistrosIndexedDB() {
+      if (!dbIndexada) return;
+      const tx = dbIndexada.transaction(DB_STORE, "readonly");
+      const store = tx.objectStore(DB_STORE);
+      const countReq = store.count();
+      countReq.onsuccess = () => {
+        const total = countReq.result;
+        const lbl = document.getElementById('lblEstadoCatalogo');
+        const badge = document.getElementById('badgeKohaDb');
+        if (total > 0) {
+          lbl.innerText = `${total.toLocaleString()} registros en base local`;
+          badge.innerText = `Koha: ${total.toLocaleString()}`;
+          badge.classList.remove('hidden');
+        } else {
+          lbl.innerText = "Sin catálogo cargado";
+          badge.classList.add('hidden');
+        }
+      };
     }
 
-    function guardarConfiguracion() {
-      const op = document.getElementById('inputOperadorModal').value.trim();
-      const key = document.getElementById('inputApiKeyModal').value.trim();
-      const wh = document.getElementById('inputWebhookModal').value.trim();
-
-      if (op) localStorage.setItem('APP_OPERADOR', op);
-      if (key) localStorage.setItem('GEMINI_API_KEY', key);
-      if (wh) localStorage.setItem('M365_WEBHOOK_URL', wh);
-
-      document.getElementById('txtOperadorActivo').innerText = op || 'Brigada Central';
-      cerrarModalConfig();
+    function limpiarCatalogoIndexedDB() {
+      if (!confirm("¿Deseas vaciar los registros de Koha almacenados en IndexedDB?")) return;
+      if (!dbIndexada) return;
+      const tx = dbIndexada.transaction(DB_STORE, "readwrite");
+      tx.objectStore(DB_STORE).clear();
+      tx.oncomplete = () => {
+        contarRegistrosIndexedDB();
+        controlCambioCodigo(true);
+      };
     }
 
-    // Carga e indexación local del catálogo Koha
-    function procesarCsvKoha(event) {
+    // -------------------------------------------------------------
+    // CARGA DE CSV CON NORMALIZACIÓN RETROCOMPATIBLE
+    // -------------------------------------------------------------
+    function procesarArchivoCsvKoha(event) {
       const file = event.target.files[0];
       if (!file) return;
 
-      document.getElementById('txtEstadoCatalogo').innerText = "Indexando archivo...";
+      document.getElementById('lblEstadoCatalogo').innerText = "Procesando e indexando CSV...";
 
       Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
         complete: function(results) {
-          catalogoKoha.clear();
-          results.data.forEach(row => {
-            const barcode = (row.barcode || row.codigo_barras || row.barcode_number || '').trim();
-            if (barcode) {
-              catalogoKoha.set(barcode, {
-                titulo: row.title || row.titulo || 'Sin título',
-                isbn: row.isbn || '',
-                autor: row.author || row.autor || '',
-                prestamos: row.issues || row.prestamos || '0',
-                coleccion: row.collection || row.coleccion || '',
-                anio: row.publicationyear || row.anio || '',
-                raw: row
-              });
-            }
-          });
-
-          const total = catalogoKoha.size;
-          document.getElementById('txtEstadoCatalogo').innerText = `${total.toLocaleString()} ejemplares indexados`;
-          const badge = document.getElementById('badgeKoha');
-          badge.innerText = `Koha: ${total.toLocaleString()}`;
-          badge.classList.remove('hidden');
+          guardarEnIndexedDB(results.data);
         },
         error: function(err) {
-          document.getElementById('txtEstadoCatalogo').innerText = "Error al leer CSV";
-          console.error(err);
+          alert("Error al analizar el archivo CSV: " + err.message);
+          contarRegistrosIndexedDB();
         }
       });
     }
 
-    // Búsqueda en índice en memoria
-    function buscarEnKohaLocal() {
-      const barcode = document.getElementById('inputBarcode').value.trim();
-      if (!barcode) return;
+    function guardarEnIndexedDB(filas) {
+      if (!dbIndexada) return;
+      const tx = dbIndexada.transaction(DB_STORE, "readwrite");
+      const store = tx.objectStore(DB_STORE);
+      let insertados = 0;
 
-      if (catalogoKoha.has(barcode)) {
-        libroActualKoha = catalogoKoha.get(barcode);
-        document.getElementById('kohaBadgeStatus').innerText = "COINCIDENCIA EN CATALOGO";
-        document.getElementById('kohaBadgeStatus').className = "text-[10px] font-bold text-emerald-600";
-        document.getElementById('kohaTitulo').innerText = `Título: ${libroActualKoha.titulo}`;
-        document.getElementById('kohaIsbn').innerText = `ISBN: ${libroActualKoha.isbn || 'No reg.'}`;
-        document.getElementById('kohaPrestamos').innerText = `Préstamos: ${libroActualKoha.prestamos}`;
+      filas.forEach(row => {
+        // Normalización retrocompatible de encabezados
+        const barcode = (
+          row.Codigo_Barras || row.codigo_barras || row.CodigoBarras ||
+          row.barcode || row.Barcode || row.BARCODE ||
+          row.itemnumber || row.barcode_number || ''
+        ).toString().trim();
 
-        // Verificación de fondo protegido
-        const colecc = (libroActualKoha.coleccion || '').toLowerCase();
-        const esProtegido = ['shook', 'laporte', 'idaeh', 'popenoe', 'lujan', 'reservado', 'historico'].some(c => colecc.includes(c));
-        const badgeCol = document.getElementById('kohaColeccion');
-        if (esProtegido) {
-          badgeCol.classList.remove('hidden');
-          badgeCol.innerText = `⚠️ Fondo Protegido: ${libroActualKoha.coleccion}`;
-        } else {
-          badgeCol.classList.add('hidden');
+        if (barcode) {
+          const item = {
+            barcode: barcode,
+            titulo: (row.Titulo || row.titulo || row.Title || row.title || 'Sin título').toString().trim(),
+            autor: (row.Autor || row.autor || row.Author || row.author || '').toString().trim(),
+            isbn: (row.ISBN || row.isbn || row.Isbn || '').toString().trim(),
+            prestamos: (row.Prestamos || row.prestamos || row.Issues || row.issues || '0').toString().trim(),
+            coleccion: (row.Coleccion || row.coleccion || row.Collection || row.collection || row.holdingbranch || '').toString().trim(),
+            anio: (row.Anio || row.anio || row.PublicationYear || row.publicationyear || '').toString().trim()
+          };
+          store.put(item);
+          insertados++;
         }
-      } else {
-        libroActualKoha = null;
-        document.getElementById('kohaBadgeStatus').innerText = "NO ENCONTRADO EN KOHA";
-        document.getElementById('kohaBadgeStatus').className = "text-[10px] font-bold text-amber-600";
-        document.getElementById('kohaTitulo').innerText = "Título: No encontrado en exportación actual";
+      });
+
+      tx.oncomplete = () => {
+        alert(`Se indexaron ${insertados.toLocaleString()} ejemplares correctamente en IndexedDB.`);
+        contarRegistrosIndexedDB();
+      };
+      tx.onerror = (e) => {
+        console.error("Error al almacenar en IndexedDB:", e);
+        alert("Ocurrió un error al persistir el catálogo.");
+      };
+    }
+
+    // -------------------------------------------------------------
+    // COTEJO AISLADO Y CONTROL DE CAMBIO DE CÓDIGO
+    // -------------------------------------------------------------
+    function controlCambioCodigo(forzarLimpieza = false) {
+      const barcodeActual = document.getElementById('inputBarcode').value.trim();
+      // Si el código cambia respecto al ejemplar en memoria, desvincular inmediatamente
+      if (forzarLimpieza || barcodeActual !== kohaBarcodeEnMemoria) {
+        kohaEjemplarEnMemoria = null;
+        kohaBarcodeEnMemoria = "";
+
+        document.getElementById('kohaBadgeStatus').innerText = "NO COTEJADO";
+        document.getElementById('kohaBadgeStatus').className = "text-[10px] font-bold text-slate-400";
+        document.getElementById('kohaTitulo').innerText = "Título: -";
         document.getElementById('kohaIsbn').innerText = "ISBN: -";
-        document.getElementById('kohaPrestamos').innerText = "Préstamos: N/D";
-        document.getElementById('kohaColeccion').classList.add('hidden');
+        document.getElementById('kohaPrestamos').innerText = "Préstamos: -";
+        document.getElementById('kohaAutor').innerText = "Autor: -";
+        document.getElementById('kohaAnio').innerText = "Año: -";
+        document.getElementById('kohaAlertaColeccion').classList.add('hidden');
       }
     }
 
-    // Compresión y preprocesamiento client-side de imágenes
-    function procesarFoto(event, elementId, index) {
+    async function cotejarKoha() {
+      const barcode = document.getElementById('inputBarcode').value.trim();
+      if (!barcode) {
+        alert("Por favor ingrese un código de barras para cotejar.");
+        return;
+      }
+
+      if (!dbIndexada) {
+        alert("La base de datos local no está disponible.");
+        return;
+      }
+
+      const tx = dbIndexada.transaction(DB_STORE, "readonly");
+      const store = tx.objectStore(DB_STORE);
+      const req = store.get(barcode);
+
+      req.onsuccess = () => {
+        const item = req.result;
+        if (item) {
+          kohaEjemplarEnMemoria = item;
+          kohaBarcodeEnMemoria = barcode;
+
+          document.getElementById('kohaBadgeStatus').innerText = "COINCIDENCIA EXACTA";
+          document.getElementById('kohaBadgeStatus').className = "text-[10px] font-bold text-emerald-600";
+          document.getElementById('kohaTitulo').innerText = `Título: ${item.titulo}`;
+          document.getElementById('kohaIsbn').innerText = `ISBN: ${item.isbn || 'No registrado'}`;
+          document.getElementById('kohaPrestamos').innerText = `Préstamos: ${item.prestamos}`;
+          document.getElementById('kohaAutor').innerText = `Autor: ${item.autor || 'N/D'}`;
+          document.getElementById('kohaAnio').innerText = `Año: ${item.anio || 'N/D'}`;
+
+          // Verificación de colecciones protegidas[cite: 3]
+          const col = (item.coleccion || '').toLowerCase();
+          const esProtegido = ['shook', 'laporte', 'idaeh', 'popenoe', 'lujan', 'reservado', 'historico'].some(c => col.includes(c));
+          const alertaCol = document.getElementById('kohaAlertaColeccion');
+          if (esProtegido) {
+            alertaCol.innerText = `⚠️ Fondo Protegido (${item.coleccion}) - Veto de descarte ordinario[cite: 3]`;
+            alertaCol.classList.remove('hidden');
+          } else {
+            alertaCol.classList.add('hidden');
+          }
+        } else {
+          kohaEjemplarEnMemoria = null;
+          kohaBarcodeEnMemoria = barcode;
+
+          document.getElementById('kohaBadgeStatus').innerText = "NO ENCONTRADO EN KOHA";
+          document.getElementById('kohaBadgeStatus').className = "text-[10px] font-bold text-amber-600";
+          document.getElementById('kohaTitulo').innerText = "Título: No figura en el catálogo cargado";
+          document.getElementById('kohaIsbn').innerText = "ISBN: -";
+          document.getElementById('kohaPrestamos').innerText = "Préstamos: N/D";
+          document.getElementById('kohaAutor').innerText = "Autor: -";
+          document.getElementById('kohaAnio').innerText = "Año: -";
+          document.getElementById('kohaAlertaColeccion').classList.add('hidden');
+        }
+      };
+    }
+
+    // -------------------------------------------------------------
+    // MANEJO DE EVIDENCIAS FOTOGRÁFICAS, COMPRESIÓN Y ZOOM
+    // -------------------------------------------------------------
+    function cargarFoto(event, idx) {
       const file = event.target.files[0];
       if (!file) return;
 
@@ -400,100 +561,148 @@
         img.onload = function() {
           const canvas = document.createElement('canvas');
           const maxDim = 960;
-          let width = img.width;
-          let height = img.height;
+          let w = img.width;
+          let h = img.height;
 
-          if (width > height && width > maxDim) {
-            height = Math.round((height * maxDim) / width);
-            width = maxDim;
-          } else if (height > maxDim) {
-            width = Math.round((width * maxDim) / height);
-            height = maxDim;
+          if (w > h && w > maxDim) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else if (h > maxDim) {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
           }
 
-          canvas.width = width;
-          canvas.height = height;
+          canvas.width = w;
+          canvas.height = h;
           const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
+          ctx.drawImage(img, 0, 0, w, h);
 
           const compressed = canvas.toDataURL('image/jpeg', 0.70);
-          imagenesBase64[index] = compressed.split(',')[1];
+          fotosBase64[idx] = compressed.split(',')[1];
 
-          const previewEl = document.getElementById(elementId);
-          previewEl.src = compressed;
-          previewEl.classList.remove('hidden');
+          document.getElementById(`imgFoto${idx}`).src = compressed;
+          document.getElementById(`imgFoto${idx}`).classList.remove('hidden');
+          document.getElementById(`phFoto${idx}`).classList.add('hidden');
+          document.getElementById(`btnDelFoto${idx}`).classList.remove('hidden');
         };
         img.src = e.target.result;
       };
       reader.readAsDataURL(file);
     }
 
-    // Inferencia con Google Gemini API
-    async function evaluarConGemini() {
+    function borrarFoto(idx) {
+      fotosBase64[idx] = null;
+      document.getElementById(`fileFoto${idx}`).value = "";
+      document.getElementById(`imgFoto${idx}`).src = "";
+      document.getElementById(`imgFoto${idx}`).classList.add('hidden');
+      document.getElementById(`phFoto${idx}`).classList.remove('hidden');
+      document.getElementById(`btnDelFoto${idx}`).classList.add('hidden');
+    }
+
+    function verFotoZoom(idx) {
+      if (!fotosBase64[idx]) return;
+      document.getElementById('imgZoomPreview').src = `data:image/jpeg;base64,${fotosBase64[idx]}`;
+      document.getElementById('modalZoom').classList.remove('hidden');
+    }
+
+    function cerrarZoom() {
+      document.getElementById('modalZoom').classList.add('hidden');
+      document.getElementById('imgZoomPreview').src = "";
+    }
+
+    // -------------------------------------------------------------
+    // MOTOR DE AUDITORÍA (GEMINI + IOUPI)
+    // -------------------------------------------------------------
+    async function iniciarEvaluacionAuditoria() {
       const apiKey = (localStorage.getItem('GEMINI_API_KEY') || '').trim();
       if (!apiKey) {
-        alert("Por favor configure la API Key de Google Gemini en Ajustes.");
-        abrirModalConfig();
+        alert("Por favor configure la API Key de Google Gemini en Ajustes (⚙️).");
+        abrirModalAjustes();
         return;
       }
 
-      const barcode = document.getElementById('inputBarcode').value.trim();
-      const fotosValidas = imagenesBase64.filter(Boolean);
-
-      if (!barcode && fotosValidas.length === 0) {
-        alert("Ingrese un código de barras o capture evidencias fotográficas para evaluar.");
+      const barcodeActual = document.getElementById('inputBarcode').value.trim();
+      if (!barcodeActual) {
+        alert("Debe ingresar un código de barras para auditar.");
         return;
       }
 
-      const btn = document.getElementById('btnEjecutarEvaluacion');
+      // Regla estricta: Exigir al menos 2 fotografías (Portada y Hoja Legal o Daño)
+      const fotosValidas = fotosBase64.filter(Boolean);
+      if (fotosValidas.length < 2) {
+        alert("Se requieren al menos DOS fotografías (Portada y Hoja Legal o Detalle de daño) para ejecutar una evaluación fehaciente.");
+        return;
+      }
+
+      // Advertencia de reevaluación si ya existe en el historial
+      const yaEvaluado = historialAuditorias.some(h => h.barcode === barcodeActual);
+      if (yaEvaluado) {
+        const confirmar = confirm(`El código ${barcodeActual} ya fue evaluado en esta sesión. ¿Deseas realizar una nueva auditoría y sobreescribir/duplicar el registro?`);
+        if (!confirmar) return;
+      }
+
+      // Asegurar coherencia: si no se cotejó antes, cotejar en silencio
+      if (kohaBarcodeEnMemoria !== barcodeActual) {
+        await new Promise((resolve) => {
+          const tx = dbIndexada.transaction(DB_STORE, "readonly");
+          const store = tx.objectStore(DB_STORE);
+          const req = store.get(barcodeActual);
+          req.onsuccess = () => {
+            kohaEjemplarEnMemoria = req.result || null;
+            kohaBarcodeEnMemoria = barcodeActual;
+            resolve();
+          };
+          req.onerror = () => { resolve(); };
+        });
+      }
+
+      const btn = document.getElementById('btnEvaluar');
       btn.disabled = true;
       btn.innerText = "⏳ Evaluando con Gemini (IOUPI)...";
 
-      // Modelo primario y respaldo
       const modelos = ["gemini-3.6-flash", "gemini-3.5-flash-lite"];
-      
-      const promptSistema = `
+
+      const promptNormativo = `
 Eres un perito bibliotecario senior del Departamento de Bibliotecas de la Universidad del Valle de Guatemala (UVG).
-Tu evaluación debe regirse ESTRICTAMENTE por la normativa institucional de descarte y el método IOUPI (Mansilla & Verde, 2015).
+Tu dictamen debe regirse ESTRICTAMENTE por la normativa institucional de descarte y el método IOUPI (Mansilla & Verde, 2015).
 
-DATOS DE CATALOGO KOHA:
-- Barcode escaneado: "${barcode}"
-- Registro Koha: ${libroActualKoha ? JSON.stringify(libroActualKoha) : 'No disponible en el CSV local'}
+DATOS COTEJADOS DE KOHA:
+- Barcode examinado: "${barcodeActual}"
+- Registro en catálogo: ${kohaEjemplarEnMemoria ? JSON.stringify(kohaEjemplarEnMemoria) : 'NO REGISTRADO EN KOHA'}
 
-REGLAS DE EVALUACION INSTITUCIONAL (ORDEN JERARQUICO):
-1. REGLA POSITIVA (VALOR HISTORICO - ANULA DESCARTE):
-   - Si pertenece a las Colecciones Especiales protegidas (Virginia B. Shook, Laporte, IDAEH, Popenoe, Luján), temas de Guatemala, historia nacional, arte, literatura regional, fondos reservados, tesis o megaproyectos:
-     * El valor histórico H = true.
-     * ANULA cualquier criterio de descarte.
+MATRIZ JERARQUICA DE EVALUACION:
+1. VALOR HISTORICO Y FONDOS PROTEGIDOS (H = true):
+   - Colecciones Shook, Laporte, IDAEH, Popenoe, Luján, obras sobre Guatemala, literatura/historia nacional, tesis, megaproyectos y ediciones únicas:
+     * H = true. ANULA cualquier criterio de descarte ordinario.
      * Dictamen OBLIGATORIO: CONSERVAR_FONDO_RESERVADO o REVISION_ESPECIALISTA.
      * Decisión: "CONSERVAR".
 
-2. VETO BIOLOGICO (HONGO / MOHO / PLAGA):
-   - Hongos activos o plagas requieren SEPARACION PREVENTIVA y evaluación de conservación.
-   - Si se detecta hongo o plaga: Dictamen: SEPARACION_PREVENTIVA_CONSERVACION, Decisión: "DESCARTAR".
+2. VETO BIOLOGICO (HONGO / MOHO ACTIVO / PLAGA):
+   - Presencia de hongos o plagas: exige SEPARACION PREVENTIVA para conservación.
+   - veto_biologico: true.
+   - Dictamen: SEPARACION_PREVENTIVA_CONSERVACION. Decisión: "DESCARTAR".
 
-3. ESTADO FISICO Y ENCUADERNACION:
-   - Deterioro mecánico restaurable (lomo roto, costura desprendida) sin hongo: MANDAR_A_ENCUADERNAR (si encuadernación no supera 1/3 del valor).
-   - Tesis, megaproyectos y engargolados con interés institucional NO se descartan por su encuadernación.
+3. DAÑO MECANICO Y HUMEDAD:
+   - dano_humedad: true únicamente si hay evidencia física de deformación, manchas de agua o alabeo sin hongo activo.
+   - Lomo roto o costura desprendida sin daño biológico: MANDAR_A_ENCUADERNAR (si encuadernación no supera 1/3 del valor de reposición). Tesis y engargolados institucionales no se descartan por su encuadernación.
 
 4. MATRIZ DE PUNTAJE IOUPI (0 a 8 puntos):
    - O (Obsolescencia / Redundancia) [0-2 pts]:
      * Publicaciones de computación/tecnología >5 años con conceptos superados: +1 o +2 pts.
-     * Formatos obsoletos sin equipamiento: +1 o +2 pts.
-     * Obras clásicas o fundamentos conservan vigencia: 0 pts.
+     * Formatos obsoletos sin equipamiento: +1 o +2 pts. Fundamentos o clásicos: 0 pts.
    - U (Sin Uso / Duplicado) [0-2 pts]:
-     * >5 años de adquisición sin uso o sin préstamos: +1 o +2 pts.
-     * Excedente de 3-4 ejemplares de la misma edición: +1 o +2 pts.
+     * >5 años de adquisición sin préstamos: +1 o +2 pts.
+     * Excedente de 3 a 4 ejemplares de la misma edición: +1 o +2 pts.
    - P (Pertinencia / Calidad) [0-2 pts]:
-     * Ajeno a planes de estudio o sin respaldo académico comprobado: +1 o +2 pts.
+     * Ajeno a planes de estudio o sin respaldo académico: +1 o +2 pts.
    - E (Estado Físico / Espacio) [0-2 pts]:
      * Manchas, mutilación, desgaste severo o falta de espacio: +1 o +2 pts.
-   - REGLA DE UMBRAL:
-     * Puntuación Total IOUPI = O + U + P + E (Máximo 8 puntos).
+   - UMBRAL:
+     * Puntaje Total = O + U + P + E (Máximo 8 puntos).
      * Si Total >= 4 puntos y H = false: Candidato a DESCARTAR.
      * Si Total < 4 puntos: CONSERVAR.
 
-Retorna EXCLUSIVAMENTE un bloque JSON válido con este formato:
+Retorna EXCLUSIVAMENTE un bloque JSON con esta estructura exacta:
 {
   "titulo_detectado": "string",
   "isbn_detectado": "string",
@@ -502,6 +711,7 @@ Retorna EXCLUSIVAMENTE un bloque JSON válido con este formato:
   "coincide_koha": "SÍ | DISCREPANCIA | NO_REGISTRADO",
   "valor_historico": false,
   "veto_biologico": false,
+  "dano_humedad": false,
   "puntajes_ioupi": {
     "o": 0,
     "u": 0,
@@ -512,14 +722,14 @@ Retorna EXCLUSIVAMENTE un bloque JSON válido con este formato:
   "criterio_rector": "string",
   "dictamen": "DESCARTAR | CONSERVAR | MANDAR_A_ENCUADERNAR | CONSERVAR_FONDO_RESERVADO | SEPARACION_PREVENTIVA_CONSERVACION | REVISION_ESPECIALISTA",
   "decision": "DESCARTAR | CONSERVAR",
-  "fundamento": "Explicación técnica detallada de 2 a 3 líneas citando el método IOUPI y la política UVG"
+  "fundamento": "Fundamentación técnica de 2 a 3 líneas aplicando la normativa UVG"
 }
 `;
 
       const contents = [{
         role: "user",
         parts: [
-          { text: promptSistema },
+          { text: promptNormativo },
           ...fotosValidas.map(b64 => ({
             inline_data: { mime_type: "image/jpeg", data: b64 }
           }))
@@ -527,12 +737,12 @@ Retorna EXCLUSIVAMENTE un bloque JSON válido con este formato:
       }];
 
       let evaluacion = null;
-      let errorMsgs = [];
+      let errores = [];
 
-      for (const modelo of modelos) {
+      for (const mod of modelos) {
         try {
-          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
-          const res = await fetch(endpoint, {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${mod}:generateContent?key=${apiKey}`;
+          const res = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -545,17 +755,17 @@ Retorna EXCLUSIVAMENTE un bloque JSON válido con este formato:
           });
 
           if (!res.ok) {
-            const errBody = await res.text();
-            throw new Error(`HTTP ${res.status}: ${errBody}`);
+            const errTxt = await res.text();
+            throw new Error(`HTTP ${res.status}: ${errTxt}`);
           }
 
-          const data = await res.json();
-          const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-          evaluacion = JSON.parse(rawText);
+          const resData = await res.json();
+          const jsonStr = resData.candidates?.[0]?.content?.parts?.[0]?.text;
+          evaluacion = JSON.parse(jsonStr);
           break;
-        } catch (err) {
-          console.warn(`Fallo con ${modelo}:`, err);
-          errorMsgs.push(`${modelo}: ${err.message}`);
+        } catch (e) {
+          console.warn(`Error con ${mod}:`, e);
+          errores.push(`${mod}: ${e.message}`);
         }
       }
 
@@ -563,59 +773,51 @@ Retorna EXCLUSIVAMENTE un bloque JSON válido con este formato:
       btn.innerText = "⚡ Evaluar con Gemini IA";
 
       if (!evaluacion) {
-        alert("Error al evaluar con los modelos de Gemini:\n" + errorMsgs.join("\n"));
+        alert("No se pudo completar la inferencia con Gemini:\n" + errores.join("\n"));
         return;
       }
 
-      renderizarResultado(evaluacion, barcode);
+      await procesarResultadoFinal(evaluacion, barcodeActual);
     }
 
-    // Renderizar resultados en pantalla y disparar persistencia
-    async function renderizarResultado(res, barcode) {
-      document.getElementById('badgeResultadoStatus').innerText = res.dictamen;
-      document.getElementById('badgeResultadoStatus').className = res.decision === 'DESCARTAR' 
+    // -------------------------------------------------------------
+    // RENDERIZADO Y PERSISTENCIA (POWER AUTOMATE + LOCALSTORAGE)
+    // -------------------------------------------------------------
+    async function procesarResultadoFinal(res, barcode) {
+      document.getElementById('badgeDictamenStatus').innerText = res.dictamen;
+      document.getElementById('badgeDictamenStatus').className = res.decision === 'DESCARTAR'
         ? "px-2.5 py-1 rounded-full text-xs font-extrabold bg-red-100 text-red-700"
         : "px-2.5 py-1 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-800";
 
       const totalIoupi = res.puntajes_ioupi?.total ?? (res.puntajes_ioupi?.o + res.puntajes_ioupi?.u + res.puntajes_ioupi?.p + res.puntajes_ioupi?.e);
-      document.getElementById('valPuntajeIoupi').innerText = `${totalIoupi} / 8`;
-      document.getElementById('valValorHistorico').innerText = res.valor_historico ? "SÍ (PROTEGIDO)" : "NO";
-      document.getElementById('valVetoBiologico').innerText = res.veto_biologico ? "ALERTA HONGO" : "NO";
-      document.getElementById('valDecisionFinal').innerText = res.decision;
+      document.getElementById('resPuntajeIoupi').innerText = `${totalIoupi} / 8`;
+      document.getElementById('resValorHistorico').innerText = res.valor_historico ? "SÍ (PROTEGIDO)" : "NO";
+      document.getElementById('resVetoBiologico').innerText = res.veto_biologico ? "ALERTA HONGO" : "NO";
+      document.getElementById('resDecision').innerText = res.decision;
 
       document.getElementById('scoreO').innerText = `${res.puntajes_ioupi?.o || 0} pts`;
       document.getElementById('scoreU').innerText = `${res.puntajes_ioupi?.u || 0} pts`;
       document.getElementById('scoreP').innerText = `${res.puntajes_ioupi?.p || 0} pts`;
       document.getElementById('scoreE').innerText = `${res.puntajes_ioupi?.e || 0} pts`;
 
-      document.getElementById('txtFundamento').innerText = res.fundamento;
+      document.getElementById('resFundamento').innerText = res.fundamento;
 
-      // Sincronizar automáticamente con Microsoft 365
-      await sincronizarM365(res, barcode, totalIoupi);
-    }
-
-    // Persistencia síncrona hacia Power Automate
-    async function sincronizarM365(res, barcode, totalIoupi) {
-      const webhookUrl = (localStorage.getItem('M365_WEBHOOK_URL') || '').trim();
-      const txtSync = document.getElementById('txtSyncMsg');
-      const ind = document.getElementById('syncIndicator');
-
-      // Mapeo exacto con los nombres del Schema JSON de Power Automate
-      const registro = {
+      // Construcción del payload desacoplado para Microsoft 365
+      const payloadM365 = {
         operador: localStorage.getItem('APP_OPERADOR') || 'Estantería',
-        barcode: barcode || 'S/N',
-        titulo: res.titulo_detectado || (libroActualKoha?.titulo || 'Desconocido'),
-        tituloKoha: libroActualKoha?.titulo || 'NO_REGISTRADO',
+        barcode: barcode,
+        titulo: res.titulo_detectado || (kohaEjemplarEnMemoria?.titulo || 'Desconocido'),
+        tituloKoha: kohaEjemplarEnMemoria?.titulo || 'NO_REGISTRADO',
         isbnDetectado: res.isbn_detectado || 'N/A',
-        isbnKoha: libroActualKoha?.isbn || 'N/A',
+        isbnKoha: kohaEjemplarEnMemoria?.isbn || 'N/A',
         edicionDetectada: res.edicion_detectada || 'N/A',
         coincideKoha: res.coincide_koha || 'NO_REGISTRADO',
-        anio: res.anio_edicion || (libroActualKoha?.anio || 'N/D'),
-        area: libroActualKoha?.coleccion || 'General',
+        anio: res.anio_edicion || (kohaEjemplarEnMemoria?.anio || 'N/D'),
+        area: kohaEjemplarEnMemoria?.coleccion || 'General',
         criterioAplicado: res.criterio_rector || 'Normativa UVG / IOUPI',
-        prestamosKoha: libroActualKoha?.prestamos || '0',
+        prestamosKoha: kohaEjemplarEnMemoria?.prestamos || '0',
         
-        // Puntuaciones IOUPI desglosadas para Excel:
+        // Puntuaciones IOUPI[cite: 3]
         puntajeTotal: String(totalIoupi),
         scoreO: String(res.puntajes_ioupi?.o ?? 0),
         scoreU: String(res.puntajes_ioupi?.u ?? 0),
@@ -624,7 +826,8 @@ Retorna EXCLUSIVAMENTE un bloque JSON válido con este formato:
         valorHistorico: res.valor_historico ? 'SÍ' : 'NO',
         vetoBiologico: res.veto_biologico ? 'SÍ' : 'NO',
 
-        danoLiquido: res.veto_biologico ? 'SÍ' : 'NO',
+        // Diferenciación estricta entre daño por líquidos y riesgo biológico
+        danoLiquido: res.dano_humedad ? 'SÍ' : 'NO',
         estado: `O:${res.puntajes_ioupi?.o || 0} U:${res.puntajes_ioupi?.u || 0} P:${res.puntajes_ioupi?.p || 0} E:${res.puntajes_ioupi?.e || 0}`,
         dictamen: res.dictamen,
         decision: res.decision,
@@ -632,72 +835,141 @@ Retorna EXCLUSIVAMENTE un bloque JSON válido con este formato:
         fecha: new Date().toLocaleString()
       };
 
-      if (!webhookUrl) {
-        txtSync.innerText = "Evaluación finalizada (Webhook M365 no configurado en Ajustes).";
-        ind.className = "w-2.5 h-2.5 rounded-full bg-amber-400";
-        agregarFilaHistorial(registro, "Local (Sin M365)");
+      await sincronizarConPowerAutomate(payloadM365);
+    }
+
+    async function sincronizarConPowerAutomate(payload) {
+      const webhook = (localStorage.getItem('M365_WEBHOOK_URL') || '').trim();
+      const txt = document.getElementById('txtSyncMsg');
+      const dot = document.getElementById('syncDot');
+
+      if (!webhook) {
+        txt.innerText = "Completado localmente (Sin Webhook configurado).";
+        dot.className = "w-2.5 h-2.5 rounded-full bg-amber-400";
+        guardarEnHistorial(payload, "Local");
         return;
       }
 
-      txtSync.innerText = "Transmitiendo a Microsoft 365...";
-      ind.className = "w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse";
+      txt.innerText = "Sincronizando con Microsoft 365...";
+      dot.className = "w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse";
 
       try {
-        const respuesta = await fetch(webhookUrl, {
+        const respuesta = await fetch(webhook, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(registro)
+          body: JSON.stringify(payload)
         });
 
         if (respuesta.status === 200) {
-          txtSync.innerText = "✓ Confirmación acreditada: Guardado en Microsoft 365.";
-          ind.className = "w-2.5 h-2.5 rounded-full bg-emerald-500";
-          agregarFilaHistorial(registro, "Acreditado (200)");
+          txt.innerText = "✓ Confirmación acreditada: Guardado en Microsoft 365.";
+          dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500";
+          guardarEnHistorial(payload, "Acreditado (200)");
         } else if (respuesta.status === 202) {
-          txtSync.innerText = "⏳ Aceptado en cola de guardado (HTTP 202).";
-          ind.className = "w-2.5 h-2.5 rounded-full bg-amber-500";
-          agregarFilaHistorial(registro, "En cola (202)");
+          txt.innerText = "⏳ En cola de procesamiento (HTTP 202).";
+          dot.className = "w-2.5 h-2.5 rounded-full bg-amber-500";
+          guardarEnHistorial(payload, "En cola (202)");
         } else {
           throw new Error(`HTTP ${respuesta.status}`);
         }
-      } catch (err) {
-        console.error("Error al sincronizar con Power Automate:", err);
-        txtSync.innerText = `Error de red al guardar en M365: ${err.message}`;
-        ind.className = "w-2.5 h-2.5 rounded-full bg-red-500";
-        agregarFilaHistorial(registro, "Error de red");
+      } catch (e) {
+        console.error("Error al transmitir a M365:", e);
+        txt.innerText = `Error de conexión M365: ${e.message}`;
+        dot.className = "w-2.5 h-2.5 rounded-full bg-red-500";
+        guardarEnHistorial(payload, "Error de red");
       }
     }
 
-    function agregarFilaHistorial(item, estadoM365) {
-      historialSesion.unshift({ ...item, estadoM365 });
-      document.getElementById('cantHistorial').innerText = historialSesion.length;
+    // -------------------------------------------------------------
+    // PERSISTENCIA DE HISTORIAL EN LOCALSTORAGE
+    // -------------------------------------------------------------
+    function cargarHistorialLocal() {
+      const data = localStorage.getItem('HISTORIAL_AUDITORIAS_UVG');
+      if (data) {
+        try {
+          historialAuditorias = JSON.parse(data);
+          actualizarTablaHistorial();
+        } catch (e) {
+          console.error("Error al leer historial local:", e);
+        }
+      }
+    }
 
+    function guardarEnHistorial(item, estadoM365) {
+      historialAuditorias.unshift({ ...item, estadoM365 });
+      localStorage.setItem('HISTORIAL_AUDITORIAS_UVG', JSON.stringify(historialAuditorias));
+      actualizarTablaHistorial();
+    }
+
+    function borrarHistorialLocal() {
+      if (!confirm("¿Deseas vaciar el historial de evaluaciones de esta estación?")) return;
+      historialAuditorias = [];
+      localStorage.removeItem('HISTORIAL_AUDITORIAS_UVG');
+      actualizarTablaHistorial();
+    }
+
+    function actualizarTablaHistorial() {
+      document.getElementById('cantHistorial').innerText = historialAuditorias.length;
       const tbody = document.getElementById('tblHistorialBody');
-      if (historialSesion.length === 1) tbody.innerHTML = '';
+      tbody.innerHTML = '';
 
-      const tr = document.createElement('tr');
-      tr.className = "hover:bg-slate-50 transition-colors";
-      tr.innerHTML = `
-        <td class="p-2.5 font-bold">${item.barcode}</td>
-        <td class="p-2.5 truncate max-w-[150px] font-sans">${item.titulo}</td>
-        <td class="p-2.5 font-sans">${item.dictamen}</td>
-        <td class="p-2.5">${item.puntajeTotal}/8</td>
-        <td class="p-2.5">${item.valorHistorico}</td>
-        <td class="p-2.5 font-bold ${item.decision === 'DESCARTAR' ? 'text-red-600' : 'text-emerald-700'}">${item.decision}</td>
-        <td class="p-2.5 font-sans text-[10px]">${estadoM365}</td>
-      `;
-      tbody.prepend(tr);
+      if (historialAuditorias.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400 font-sans">No hay registros almacenados.</td></tr>';
+        return;
+      }
+
+      historialAuditorias.forEach(h => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 transition-colors";
+        tr.innerHTML = `
+          <td class="p-2.5 font-bold">${h.barcode}</td>
+          <td class="p-2.5 truncate max-w-[140px] font-sans">${h.titulo}</td>
+          <td class="p-2.5 font-sans">${h.dictamen}</td>
+          <td class="p-2.5">${h.puntajeTotal}/8</td>
+          <td class="p-2.5">${h.valorHistorico}</td>
+          <td class="p-2.5 font-bold ${h.decision === 'DESCARTAR' ? 'text-red-600' : 'text-emerald-700'}">${h.decision}</td>
+          <td class="p-2.5 font-sans text-[10px]">${h.estadoM365}</td>
+          <td class="p-2.5 font-sans text-[10px] text-right text-slate-400">${h.fecha}</td>
+        `;
+        tbody.appendChild(tr);
+      });
     }
 
     function exportarExcelSesion() {
-      if (historialSesion.length === 0) {
-        alert("No hay registros en la sesión para exportar.");
+      if (historialAuditorias.length === 0) {
+        alert("No hay registros en el historial para exportar.");
         return;
       }
-      const ws = XLSX.utils.json_to_sheet(historialSesion);
+      const ws = XLSX.utils.json_to_sheet(historialAuditorias);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Auditoria_UVG");
       XLSX.writeFile(wb, `Auditoria_Expurgo_UVG_${new Date().toISOString().slice(0,10)}.xlsx`);
+    }
+
+    // -------------------------------------------------------------
+    // MODAL DE AJUSTES
+    // -------------------------------------------------------------
+    function abrirModalAjustes() {
+      document.getElementById('cfgOperador').value = localStorage.getItem('APP_OPERADOR') || '';
+      document.getElementById('cfgApiKey').value = localStorage.getItem('GEMINI_API_KEY') || '';
+      document.getElementById('cfgWebhook').value = localStorage.getItem('M365_WEBHOOK_URL') || '';
+      document.getElementById('modalAjustes').classList.remove('hidden');
+    }
+
+    function cerrarModalAjustes() {
+      document.getElementById('modalAjustes').classList.add('hidden');
+    }
+
+    function guardarAjustes() {
+      const op = document.getElementById('cfgOperador').value.trim();
+      const key = document.getElementById('cfgApiKey').value.trim();
+      const wh = document.getElementById('cfgWebhook').value.trim();
+
+      if (op) localStorage.setItem('APP_OPERADOR', op);
+      if (key) localStorage.setItem('GEMINI_API_KEY', key);
+      if (wh) localStorage.setItem('M365_WEBHOOK_URL', wh);
+
+      document.getElementById('lblOperador').innerText = op || 'Brigada Central';
+      cerrarModalAjustes();
     }
   </script>
 </body>
