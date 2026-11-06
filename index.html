@@ -344,7 +344,7 @@
         </div>
         <div class="border-b border-slate-100 pb-2 space-y-1.5">
           <div class="flex justify-between items-center">
-            <span class="text-slate-400 font-medium">Puntaje IOUPI (O+U+P+E):</span>
+            <span class="text-slate-400 font-medium">Puntaje IOUPI complementario (O+U+P+E):</span>
             <span id="resPuntajeTotal" class="font-extrabold text-uvg-deep font-mono">0 / 8 pts</span>
           </div>
           <div class="grid grid-cols-4 gap-1.5 text-[10px] font-mono text-center pt-0.5">
@@ -536,6 +536,7 @@
     let importandoCatalogo = false;
     let ejemplarKohaSeleccionado = null;
     let reescaneoConfirmado = false;
+    let evaluacionEnCurso = false;
 
     function normalizarBarcode(valor) {
       return String(valor ?? '').trim().toLowerCase();
@@ -548,7 +549,7 @@
 
       if (!codigoLimpio) {
         alerta.classList.add('hidden');
-        btnEvaluar.disabled = false;
+        btnEvaluar.disabled = evaluacionEnCurso;
         btnEvaluar.classList.remove('opacity-50', 'cursor-not-allowed');
         return null;
       }
@@ -565,7 +566,7 @@
         return previo;
       } else {
         alerta.classList.add('hidden');
-        btnEvaluar.disabled = false;
+        btnEvaluar.disabled = evaluacionEnCurso;
         btnEvaluar.classList.remove('opacity-50', 'cursor-not-allowed');
         return null;
       }
@@ -575,7 +576,7 @@
       reescaneoConfirmado = true;
       document.getElementById('alertaDuplicado').classList.add('hidden');
       const btnEvaluar = document.getElementById('btnEvaluar');
-      btnEvaluar.disabled = false;
+      btnEvaluar.disabled = evaluacionEnCurso;
       btnEvaluar.classList.remove('opacity-50', 'cursor-not-allowed');
     }
 
@@ -1077,7 +1078,8 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
   "coincide_titulo_koha": true/false/null,
   "discrepancia_catalogo_detalle": "string conciso o vacío",
   "area_disciplina": "string (Computación | Negocios | Humanidades | Literatura | etc.)",
-  "tipo_dano": "HUMEDAD_HONGO" | "MECANICO_DESGASTE" | "NINGUNO",
+  "tipo_dano": "BIOLOGICO" | "HUMEDAD_SIN_HONGO" | "MECANICO_DESGASTE" | "NINGUNO",
+  "riesgo_biologico_detectado": true/false,
   "dano_liquido_detectado": true/false,
   "detalle_dano": "string conciso",
   "es_patrimonial_o_historico": true/false,
@@ -1092,13 +1094,19 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
     "e": 0
   }
 }
-Nota sobre puntajes_ioupi: asigna un entero de 0 a 2 en cada componente según los hallazgos (o: obsolescencia/redundancia, u: sin uso/duplicado, p: no pertinente/mala calidad, e: mal estado físico/espacio).`;
+Nota sobre puntajes_ioupi: devuelve siempre los cuatro componentes, cada uno como número entero de 0 a 2 (o: obsolescencia/redundancia, u: sin uso/duplicado, p: no pertinente/mala calidad, e: mal estado físico/espacio). No omitas componentes.
+El puntaje es complementario: el dictamen se rige por la jerarquía anterior; no apliques automáticamente un umbral de 4 puntos.
+riesgo_biologico_detectado es true únicamente ante evidencia de hongos, moho o plagas. Humedad, manchas de agua, acidez y roturas por sí solas no prueban riesgo biológico. Usa BIOLOGICO si ese riesgo es true; HUMEDAD_SIN_HONGO si hay humedad sin riesgo biológico. dano_liquido_detectado es independiente y puede ser true junto con riesgo biológico.
+Usa booleanos JSON reales, nunca textos como "false". CONSERVAR, MANDAR_A_ENCUADERNAR, CONSERVAR_FONDO_RESERVADO y REVISION_ESPECIALISTA requieren decision_descarte=false. DESCARTAR requiere decision_descarte=true. Si es_patrimonial_o_historico=true, usa CONSERVAR_FONDO_RESERVADO y decision_descarte=false.`;
       }
     };
 
     const esperar = (ms) => new Promise(res => setTimeout(res, ms));
 
     async function evaluarLibro() {
+      if (evaluacionEnCurso) return;
+      evaluacionEnCurso = true;
+      try {
       buscarEnCatalogo();
       const kohaEvaluado = ejemplarKohaSeleccionado ? { ...ejemplarKohaSeleccionado } : null;
       const barcodeActual = kohaEvaluado ? kohaEvaluado.barcode : document.getElementById('inputBarcode').value.trim();
@@ -1190,12 +1198,12 @@ Nota sobre puntajes_ioupi: asigna un entero de 0 a 2 en cada componente según l
 
             const data = await res.json();
             const result = JSON.parse(data.candidates[0].content.parts[0].text);
+            validarEvaluacion(result);
             const ioupi = calcularPuntajesIOUPI(result);
 
-            renderizarResultado(result, kohaEvaluado, ioupi);
-
             guardarEnHistorial({
-              barcode: kohaEvaluado ? kohaEvaluado.barcode : (document.getElementById('inputBarcode').value.trim() || 'N/A'),
+              barcode: barcodeActual || 'N/A',
+              esquemaEvaluacion: 2,
               titulo: result.titulo_detectado || (kohaEvaluado ? kohaEvaluado.titulo : "Sin título"),
               tituloKoha: kohaEvaluado ? kohaEvaluado.titulo : null,
               isbnDetectado: result.isbn_detectado || "N/A",
@@ -1222,6 +1230,7 @@ Nota sobre puntajes_ioupi: asigna un entero de 0 a 2 en cada componente según l
               fecha: new Date().toLocaleString()
             });
 
+            renderizarResultado(result, kohaEvaluado, ioupi);
             exito = true;
             break;
           } catch (err) {
@@ -1234,14 +1243,58 @@ Nota sobre puntajes_ioupi: asigna un entero de 0 a 2 en cada componente según l
 
       if (!exito) alert("Fallo en la evaluación: " + ultimoError);
 
-      loader.classList.add('hidden');
-      document.getElementById('btnEvaluar').disabled = false;
+      } catch (error) {
+        alert('No se pudo completar la evaluación: ' + error.message);
+      } finally {
+        evaluacionEnCurso = false;
+        document.getElementById('loader').classList.add('hidden');
+        buscarEnCatalogo();
+      }
     }
 
     function normalizarPuntoIOUPI(val) {
-      const n = Number.parseInt(val, 10);
-      if (Number.isNaN(n)) return 0;
-      return Math.min(2, Math.max(0, n));
+      if (typeof val === 'string' && /^[0-2]$/.test(val.trim())) return Number(val);
+      return typeof val === 'number' && Number.isInteger(val) && val >= 0 && val <= 2 ? val : null;
+    }
+
+    function sumarPuntajes(o, u, p, e) {
+      const puntos = [o, u, p, e].map(normalizarPuntoIOUPI);
+      return puntos.includes(null) ? null : puntos.reduce((suma, n) => suma + n, 0);
+    }
+
+    function etiquetaBooleano(valor) {
+      return valor === true ? 'SÍ' : valor === false ? 'NO' : 'N/D';
+    }
+
+    function vetoRegistro(item) {
+      // Versiones anteriores confundían humedad y hongos; no inferir un diagnóstico.
+      return item.esquemaEvaluacion === 2 && typeof item.vetoBiologico === 'boolean'
+        ? item.vetoBiologico : null;
+    }
+
+    function validarEvaluacion(res) {
+      if (!res || typeof res !== 'object' || Array.isArray(res)) throw new Error('Respuesta de IA inválida.');
+      const p = res.puntajes_ioupi;
+      if (!p || !['o', 'u', 'p', 'e'].every(k => typeof p[k] === 'number' && normalizarPuntoIOUPI(p[k]) !== null)) {
+        throw new Error('La IA devolvió puntajes IOUPI incompletos o fuera de rango (0–2). No se guardó la evaluación.');
+      }
+      for (const k of ['decision_descarte', 'es_patrimonial_o_historico', 'riesgo_biologico_detectado', 'dano_liquido_detectado']) {
+        if (typeof res[k] !== 'boolean') throw new Error('Falta un indicador válido: ' + k);
+      }
+      const categorias = ['DESCARTAR', 'CONSERVAR', 'MANDAR_A_ENCUADERNAR', 'CONSERVAR_FONDO_RESERVADO', 'REVISION_ESPECIALISTA'];
+      if (!categorias.includes(res.categoria_dictamen) || res.decision_descarte !== (res.categoria_dictamen === 'DESCARTAR')) {
+        throw new Error('La decisión y el dictamen de la IA son contradictorios. Repite la evaluación.');
+      }
+      if (res.es_patrimonial_o_historico && res.categoria_dictamen !== 'CONSERVAR_FONDO_RESERVADO') {
+        throw new Error('El dictamen contradice la protección patrimonial. Repite la evaluación.');
+      }
+      const tipos = ['BIOLOGICO', 'HUMEDAD_SIN_HONGO', 'MECANICO_DESGASTE', 'NINGUNO'];
+      if (!tipos.includes(res.tipo_dano) || res.riesgo_biologico_detectado !== (res.tipo_dano === 'BIOLOGICO') ||
+          (res.tipo_dano === 'HUMEDAD_SIN_HONGO' && !res.dano_liquido_detectado) ||
+          (res.tipo_dano === 'NINGUNO' && res.dano_liquido_detectado)) {
+        throw new Error('La clasificación del daño es incompleta o contradictoria. Repite la evaluación.');
+      }
+      if (typeof res.motivo !== 'string' || !res.motivo.trim()) throw new Error('Falta la justificación del dictamen.');
     }
 
     function calcularPuntajesIOUPI(res) {
@@ -1250,9 +1303,9 @@ Nota sobre puntajes_ioupi: asigna un entero de 0 a 2 en cada componente según l
       const u = normalizarPuntoIOUPI(p.u);
       const pScore = normalizarPuntoIOUPI(p.p);
       const e = normalizarPuntoIOUPI(p.e);
-      const total = o + u + pScore + e;
-      const valorHistorico = Boolean(res?.es_patrimonial_o_historico || res?.categoria_dictamen === 'CONSERVAR_FONDO_RESERVADO');
-      const vetoBiologico = Boolean(res?.tipo_dano === 'HUMEDAD_HONGO');
+      const total = sumarPuntajes(o, u, pScore, e);
+      const valorHistorico = typeof res?.es_patrimonial_o_historico === 'boolean' ? res.es_patrimonial_o_historico : null;
+      const vetoBiologico = typeof res?.riesgo_biologico_detectado === 'boolean' ? res.riesgo_biologico_detectado : null;
       return { o, u, p: pScore, e, total, valorHistorico, vetoBiologico };
     }
 
@@ -1303,13 +1356,13 @@ Nota sobre puntajes_ioupi: asigna un entero de 0 a 2 en cada componente según l
       document.getElementById('resCategoria').textContent = dictamen;
       document.getElementById('resMotivo').textContent = res.motivo || 'N/A';
 
-      document.getElementById('resPuntajeTotal').textContent = `${ioupi.total} / 8 pts`;
-      document.getElementById('resScoreO').textContent = ioupi.o;
-      document.getElementById('resScoreU').textContent = ioupi.u;
-      document.getElementById('resScoreP').textContent = ioupi.p;
-      document.getElementById('resScoreE').textContent = ioupi.e;
-      document.getElementById('resValorHistorico').textContent = ioupi.valorHistorico ? 'SÍ' : 'NO';
-      document.getElementById('resVetoBiologico').textContent = ioupi.vetoBiologico ? 'SÍ' : 'NO';
+      document.getElementById('resPuntajeTotal').textContent = ioupi.total === null ? 'N/D' : `${ioupi.total} / 8 pts`;
+      document.getElementById('resScoreO').textContent = ioupi.o ?? 'N/D';
+      document.getElementById('resScoreU').textContent = ioupi.u ?? 'N/D';
+      document.getElementById('resScoreP').textContent = ioupi.p ?? 'N/D';
+      document.getElementById('resScoreE').textContent = ioupi.e ?? 'N/D';
+      document.getElementById('resValorHistorico').textContent = etiquetaBooleano(ioupi.valorHistorico);
+      document.getElementById('resVetoBiologico').textContent = etiquetaBooleano(ioupi.vetoBiologico);
 
       document.getElementById('cardResultado').classList.remove('hidden');
       document.getElementById('cardResultado').scrollIntoView({ behavior: 'smooth' });
@@ -1325,7 +1378,7 @@ Nota sobre puntajes_ioupi: asigna un entero de 0 a 2 en cada componente según l
       document.getElementById('fichaKoha').classList.add('hidden');
       document.getElementById('alertaDuplicado').classList.add('hidden');
       const btnEvaluar = document.getElementById('btnEvaluar');
-      btnEvaluar.disabled = false;
+      btnEvaluar.disabled = evaluacionEnCurso;
       btnEvaluar.classList.remove('opacity-50', 'cursor-not-allowed');
       ejemplarKohaSeleccionado = null;
       document.getElementById('cardResultado').classList.add('hidden');
@@ -1336,7 +1389,9 @@ Nota sobre puntajes_ioupi: asigna un entero de 0 a 2 en cada componente según l
     // HISTORIAL Y EXPORTACIÓN EXCEL (.XLSX)
     // ========================================================
     function obtenerHistorial() {
-      return JSON.parse(localStorage.getItem('HISTORIAL_EXPURGO') || '[]');
+      const historial = JSON.parse(localStorage.getItem('HISTORIAL_EXPURGO') || '[]');
+      if (!Array.isArray(historial)) throw new Error('El historial local no tiene un formato válido.');
+      return historial;
     }
 
     function mostrarEstadoM365(mensaje) {
@@ -1364,18 +1419,13 @@ Nota sobre puntajes_ioupi: asigna un entero de 0 a 2 en cada componente según l
         area: String(item.area || ''),
         criterioAplicado: String(item.criterioAplicado || ''),
         prestamosKoha: String(item.prestamosKoha ?? 'N/D'),
-        puntajeTotal: String(
-          normalizarPuntoIOUPI(item.scoreO) +
-          normalizarPuntoIOUPI(item.scoreU) +
-          normalizarPuntoIOUPI(item.scoreP) +
-          normalizarPuntoIOUPI(item.scoreE)
-        ),
-        scoreO: String(normalizarPuntoIOUPI(item.scoreO)),
-        scoreU: String(normalizarPuntoIOUPI(item.scoreU)),
-        scoreP: String(normalizarPuntoIOUPI(item.scoreP)),
-        scoreE: String(normalizarPuntoIOUPI(item.scoreE)),
-        valorHistorico: item.valorHistorico ? 'SÍ' : 'NO',
-        vetoBiologico: item.vetoBiologico ? 'SÍ' : 'NO',
+        puntajeTotal: String(sumarPuntajes(item.scoreO, item.scoreU, item.scoreP, item.scoreE) ?? 'N/D'),
+        scoreO: String(normalizarPuntoIOUPI(item.scoreO) ?? 'N/D'),
+        scoreU: String(normalizarPuntoIOUPI(item.scoreU) ?? 'N/D'),
+        scoreP: String(normalizarPuntoIOUPI(item.scoreP) ?? 'N/D'),
+        scoreE: String(normalizarPuntoIOUPI(item.scoreE) ?? 'N/D'),
+        valorHistorico: etiquetaBooleano(item.valorHistorico),
+        vetoBiologico: etiquetaBooleano(vetoRegistro(item)),
         danoLiquido: item.danoLiquido ? 'SÍ' : 'NO',
         estado: String(item.estado || ''),
         dictamen: String(item.dictamen || ''),
@@ -1417,7 +1467,11 @@ Nota sobre puntajes_ioupi: asigna un entero de 0 a 2 en cada componente según l
         historial = historial.filter(h => normalizarBarcode(h.barcode) !== code);
       }
       historial.push(item);
-      localStorage.setItem('HISTORIAL_EXPURGO', JSON.stringify(historial));
+      try {
+        localStorage.setItem('HISTORIAL_EXPURGO', JSON.stringify(historial));
+      } catch (error) {
+        throw new Error('No se pudo guardar el historial local. Revisa el espacio disponible y los permisos del navegador. ' + error.message);
+      }
       renderizarTabla();
       void enviarAMicrosoft365(item);
     }
@@ -1467,18 +1521,13 @@ Nota sobre puntajes_ioupi: asigna un entero de 0 a 2 en cada componente según l
         "Área / Disciplina": h.area || "N/A",
         "Criterio Rector": h.criterioAplicado || "N/A",
         "Préstamos Históricos (Koha)": h.prestamosKoha !== undefined ? h.prestamosKoha : "N/D",
-        "Puntaje Total IOUPI": (
-          normalizarPuntoIOUPI(h.scoreO) +
-          normalizarPuntoIOUPI(h.scoreU) +
-          normalizarPuntoIOUPI(h.scoreP) +
-          normalizarPuntoIOUPI(h.scoreE)
-        ),
-        "Puntaje O": normalizarPuntoIOUPI(h.scoreO),
-        "Puntaje U": normalizarPuntoIOUPI(h.scoreU),
-        "Puntaje P": normalizarPuntoIOUPI(h.scoreP),
-        "Puntaje E": normalizarPuntoIOUPI(h.scoreE),
-        "Valor Histórico": h.valorHistorico ? "SÍ" : "NO",
-        "Veto Biológico": h.vetoBiologico ? "SÍ" : "NO",
+        "Puntaje Total IOUPI": sumarPuntajes(h.scoreO, h.scoreU, h.scoreP, h.scoreE) ?? 'N/D',
+        "Puntaje O": normalizarPuntoIOUPI(h.scoreO) ?? "N/D",
+        "Puntaje U": normalizarPuntoIOUPI(h.scoreU) ?? "N/D",
+        "Puntaje P": normalizarPuntoIOUPI(h.scoreP) ?? "N/D",
+        "Puntaje E": normalizarPuntoIOUPI(h.scoreE) ?? "N/D",
+        "Valor Histórico": etiquetaBooleano(h.valorHistorico),
+        "Veto Biológico": etiquetaBooleano(vetoRegistro(h)),
         "Daño Líquido / Humedad": h.danoLiquido ? "SÍ" : "NO",
         "Detalle Estado Físico": h.estado,
         "Dictamen": h.dictamen || h.decision,
